@@ -1,0 +1,25 @@
+{
+  "ads": [
+    {
+      "id": 1,
+      "title": "Nouveau Prêt Express",
+      "content": "Obtenez un prêt rapide avec traitement accéléré!",
+      "image_path": "/static/ads/loan_express.jpg",
+      "is_active": true,
+      "platforms": ["web", "desktop", "mobile"]
+    },
+    {
+      "id": 2,
+      "title": "Taux d'Intérêt Réduits",
+      "content": "Profitez de nos taux spéciaux ce mois-ci!",
+      "image_path": "/static/ads/special_rates.jpg",
+      "is_active": true,
+      "platforms": ["web", "desktop", "mobile"]
+    }
+  ],
+  "settings": {
+    "rotation_interval": 30,
+    "max_ads_display": 3,
+    "default_language": "fr"
+  }
+}

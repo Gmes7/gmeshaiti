@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord - GMES</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card p {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+            color: #333;
+        }
+
+        .score-excellent { color: #10b981; }
+        .score-good { color: #3b82f6; }
+        .score-fair { color: #f59e0b; }
+        .score-poor { color: #ef4444; }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .action-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 0.25rem;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: #9ca3af;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .notification-badge {
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        .gamification-level {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 0.5rem 0;
+        }
+
+        .progress-bar {
+            background: #e5e7eb;
+            border-radius: 10px;
+            height: 8px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: #10b981;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- EN-TÊTE -->
+        <div class="header">
+            <div class="user-info">
+                <h1>🎯 Tableau de Bord GMES</h1>
+                <p>Bienvenue, <strong>{{ user.prenom }} {{ user.nom }}</strong>
+                   <span class="badge">{{ user.role }}</span>
+                   {% if user.role == 'client' %}
+                   <span class="gamification-level">Niveau 3 - Expert 💎</span>
+                   {% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('deconnexion') }}" class="btn btn-danger">🚪 Déconnexion</a>
+            </div>
+        </div>
+
+        <!-- STATISTIQUES PRINCIPALES -->
+        <div class="stats">
+            <div class="stat-card">
+                <h3>💰 Prêts Actifs</h3>
+                <p>{{ stats.prets_actifs or 0 }}</p>
+                <small>{{ stats.montant_actifs or 0 }} HTG</small>
+            </div>
+
+            <div class="stat-card">
+                <h3>📈 Score Crédit</h3>
+                <p class="score-{{ stats.score_categorie or 'fair' }}">{{ stats.score_credit or 'N/A' }}</p>
+                <small>{{ stats.score_label or 'Non évalué' }}</small>
+            </div>
+
+            <div class="stat-card">
+                <h3>👥 Mon Groupe</h3>
+                <p>{{ stats.groupe_nom or 'Non assigné' }}</p>
+                <small>{{ stats.groupe_membres or 0 }} membres</small>
+            </div>
+
+            <div class="stat-card">
+                <h3>💎 Niveau</h3>
+                <p>{{ stats.niveau or 1 }}</p>
+                <small>{{ stats.points or 0 }} points</small>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ stats.progression or 0 }}%"></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>📊 Remboursements</h3>
+                <p>{{ stats.remboursements_mois or 0 }}</p>
+                <small>Ce mois</small>
+            </div>
+
+            <div class="stat-card">
+                <h3>🔔 Notifications</h3>
+                <p>
+                    {{ stats.notifications_non_lues or 0 }}
+                    {% if stats.notifications_non_lues and stats.notifications_non_lues > 0 %}
+                    <span class="notification-badge">{{ stats.notifications_non_lues }}</span>
+                    {% endif %}
+                </p>
+                <small>Non lues</small>
+            </div>
+        </div>
+
+        <!-- SECTIONS D'ACTIONS -->
+        <div class="actions-grid">
+            <!-- PRÊTS ET FINANCES -->
+            <div class="action-section">
+                <h3>💰 Gestion des Prêts</h3>
+                <a href="{{ url_for('demande_pret') }}" class="btn">➕ Demander un prêt</a>
+                <a href="{{ url_for('mes_prets') }}" class="btn">📋 Mes prêts</a>
+                <a href="{{ url_for('calcul_pret') }}" class="btn">🧮 Simulateur</a>
+                <a href="{{ url_for('mes_remboursements') }}" class="btn">💳 Remboursements</a>
+
+                {% if user.role == 'admin' or user.role == 'employe' %}
+                <a href="{{ url_for('prets_en_attente') }}" class="btn btn-warning">👥 Gérer les prêts</a>
+                {% endif %}
+            </div>
+
+            <!-- GROUPES SOLIDAIRES -->
+            <div class="action-section">
+                <h3>👥 Groupes Solidaires</h3>
+                <a href="{{ url_for('liste_groupes') }}" class="btn">🏘️ Voir les groupes</a>
+                <a href="{{ url_for('detail_groupe', groupe_id=user.groupe_id) if user.groupe_id else '#' }}"
+                   class="btn {% if not user.groupe_id %}btn-secondary{% endif %}">
+                   👨‍👩‍👧‍👦 Mon groupe
+                </a>
+                <a href="{{ url_for('demande_pret_solidaire', groupe_id=user.groupe_id) if user.groupe_id else '#' }}"
+                   class="btn {% if not user.groupe_id %}btn-secondary{% endif %}">
+                   🤝 Prêt solidaire
+                </a>
+
+                {% if user.role == 'admin' or user.role == 'employe' %}
+                <a href="{{ url_for('creer_groupe') }}" class="btn btn-success">➕ Créer groupe</a>
+                {% endif %}
+            </div>
+
+            <!-- INTELLIGENCE ARTIFICIELLE -->
+            <div class="action-section">
+                <h3>🤖 Intelligence Artificielle</h3>
+                <a href="{{ url_for('score_credit') }}" class="btn">🎯 Mon score crédit</a>
+                <a href="{{ url_for('recommandations_pret') }}" class="btn">💡 Recommandations</a>
+                <a href="{{ url_for('analytics_personnel') }}" class="btn">📊 Analytics perso</a>
+                <a href="{{ url_for('previsions_remboursement') }}" class="btn">🔮 Prévisions</a>
+            </div>
+
+            <!-- GAMIFICATION -->
+            <div class="action-section">
+                <h3>💎 Gamification</h3>
+                <a href="{{ url_for('profil_gamification') }}" class="btn">🏆 Mon niveau</a>
+                <a href="{{ url_for('defis') }}" class="btn">🎯 Défis & objectifs</a>
+                <<a href="{{ url_for('profil_gamification') }}" class="btn">🎁 Mes récompenses</a>
+                <a href="{{ url_for('classement') }}" class="btn">📈 Classement</a>
+            </div>
+
+            <!-- NOTIFICATIONS ET PARAMÈTRES -->
+            <div class="action-section">
+                <h3>⚙️ Préférences</h3>
+                <a href="{{ url_for('notifications') }}" class="btn">
+                    🔔 Notifications
+                    {% if stats.notifications_non_lues and stats.notifications_non_lues > 0 %}
+                    <span class="notification-badge">{{ stats.notifications_non_lues }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('parametres') }}" class="btn">🔧 Paramètres</a>
+                <a href="{{ url_for('profil') }}" class="btn">👤 Mon profil</a>
+                <a href="{{ url_for('securite') }}" class="btn">🔐 Sécurité</a>
+                <a href="{{ url_for('reconnaissance_faciale') }}" class="btn">📷 Reconnaissance faciale</a>
+            </div>
+
+            <!-- ADMINISTRATION -->
+            {% if user.role == 'admin' %}
+            <div class="action-section">
+                <h3>👑 Administration</h3>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-warning">📊 Dashboard admin</a>
+                <a href="{{ url_for('admin_rapports') }}" class="btn">📈 Rapports</a>
+                <a href="{{ url_for('admin_notifications') }}" class="btn">🔔 Gestion notifications</a>
+                <a href="{{ url_for('admin_remboursements') }}" class="btn">💳 Supervision</a>
+                <a href="{{ url_for('statistiques_temps_reel') }}" class="btn">📡 Temps réel</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- SECTION MOBILE -->
+        <div class="action-section">
+            <h3>📱 Application Mobile</h3>
+            <p>Téléchargez notre application mobile pour une expérience optimale :</p>
+            <a href="#" class="btn">📲 Télécharger l'app</a>
+            <a href="{{ url_for('test_mobile') }}" class="btn">🔗 Lien mobile</a>
+            <small style="color: #666; display: block; margin-top: 0.5rem;">
+                ✅ Reconnaissance faciale | 📊 Analytics temps réel | 🔔 Notifications push
+            </small>
+        </div>
+
+        <!-- TEST API -->
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('test') }}" class="btn btn-secondary">🔧 Test API & Diagnostic</a>
+        </div>
+    </div>
+
+    <script>
+        // Animation simple pour les cartes
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.stat-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = (index * 0.1) + 's';
+                card.classList.add('fade-in');
+            });
+        });
+
+        // Mise à jour en temps réel des notifications
+        function updateNotifications() {
+            fetch('/api/notifications/count')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.querySelector('.notification-badge');
+                    if (badge && data.count > 0) {
+                        badge.textContent = data.count;
+                    }
+                });
+        }
+
+        // Actualiser toutes les 30 secondes
+        setInterval(updateNotifications, 30000);
+    </script>
+</body>
+</html>

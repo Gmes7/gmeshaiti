@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapports et Statistiques - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #6f42c1; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin: 2rem 0; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        .stat-number { font-size: 2rem; font-weight: bold; margin: 0.5rem 0; }
+        .stat-label { color: #666; font-size: 0.9rem; }
+        .rapports-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+        .rapport-card { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.75rem 1.5rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .btn-export { background: #28a745; }
+        .btn-dashboard { background: #6f42c1; }
+        .positive { color: #28a745; }
+        .negative { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Rapports et Statistiques</h1>
+        <a href="{{ url_for('admin_dashboard') }}" style="color: white;">← Retour</a>
+    </div>
+
+    <div class="container">
+        <!-- Statistiques en temps réel -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h2>📈 Tableau de Bord en Temps Réel</h2>
+            <a href="{{ url_for('tableau_bord_personnalise') }}" class="btn btn-dashboard">🎛️ Tableau de Bord Avancé</a>
+        </div>
+
+        <div class="stats-grid">
+            <!-- Clients -->
+            <div class="stat-card">
+                <div class="stat-label">👥 Clients Totaux</div>
+                <div class="stat-number">{{ stats.clients.total }}</div>
+                <small class="positive">+{{ stats.clients.nouveaux_ce_mois }} ce mois</small>
+            </div>
+
+            <!-- Prêts -->
+            <div class="stat-card">
+                <div class="stat-label">💰 Prêts Actifs</div>
+                <div class="stat-number">{{ stats.prets.actifs }}</div>
+                <small>{{ stats.prets.en_attente }} en attente</small>
+            </div>
+
+            <!-- Montants -->
+            <div class="stat-card">
+                <div class="stat-label">💵 Portefeuille</div>
+                <div class="stat-number">{{ "%.2f"|format(stats.prets.montant_actifs) }} HTG</div>
+                <small>Total: {{ "%.2f"|format(stats.prets.montant_total) }} HTG</small>
+            </div>
+
+            <!-- Performance -->
+            <div class="stat-card">
+                <div class="stat-label">📈 Taux Remboursement</div>
+                <div class="stat-number {{ 'positive' if stats.remboursements.taux_remboursement > 90 else 'negative' }}">
+                    {{ stats.remboursements.taux_remboursement }}%
+                </div>
+                <small>{{ stats.remboursements.total }} remboursements</small>
+            </div>
+        </div>
+
+        <!-- Rapports disponibles -->
+        <div class="rapports-grid">
+            <div class="rapport-card">
+                <h3>📋 Rapport des Prêts</h3>
+                <p>Analyse détaillée de tous les prêts avec filtres avancés.</p>
+                <a href="{{ url_for('rapport_prets') }}" class="btn">📊 Voir le rapport</a>
+                <a href="{{ url_for('export_prets_excel') }}" class="btn btn-export">📤 Exporter Excel</a>
+            </div>
+
+            <div class="rapport-card">
+                <h3>💳 Rapport des Remboursements</h3>
+                <p>Suivi des remboursements et analyse des performances.</p>
+                <a href="{{ url_for('rapport_remboursements') }}" class="btn">📊 Voir le rapport</a>
+            </div>
+
+            <div class="rapport-card">
+                <h3>👥 Rapport des Groupes</h3>
+                <p>Performance et statistiques des groupes de solidarité.</p>
+                <a href="{{ url_for('statistiques_groupes') }}" class="btn">📊 Voir le rapport</a>
+            </div>
+
+            <div class="rapport-card">
+                <h3>📈 Performance Globale</h3>
+                <p>Indicateurs clés de performance et tendances.</p>
+                <a href="{{ url_for('statistiques_temps_reel') }}" class="btn">📊 Données temps réel</a>
+            </div>
+        </div>
+
+        <!-- Indicateurs supplémentaires -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 2rem;">
+            <div class="stat-card">
+                <div class="stat-label">🏢 Groupes Actifs</div>
+                <div class="stat-number">{{ stats.groupes.total }}</div>
+                <small>{{ "%.1f"|format(stats.groupes.membres_moyen) }} membres/groupe</small>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">✅ Taux d'Approbation</div>
+                <div class="stat-number">{{ "%.1f"|format(stats.performance.taux_approbation) }}%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">🔄 Rotation Fonds</div>
+                <div class="stat-number">{{ "%.2f"|format(stats.performance.rotation_fonds) }}x</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Actualisation automatique des statistiques
+        function actualiserStatistiques() {
+            fetch('/api/statistiques-temps-reel')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Statistiques mises à jour:', data);
+                });
+        }
+
+        // Actualiser toutes les 30 secondes
+        setInterval(actualiserStatistiques, 30000);
+    </script>
+</body>
+</html>

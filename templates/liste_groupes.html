@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groupes de Solidarité - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #28a745; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .groupe-card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .btn-rejoindre { background: #007bff; }
+        .btn-creer { background: #28a745; }
+        .btn-details { background: #6c757d; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
+        .stat-item { text-align: center; padding: 0.5rem; background: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 Groupes de Solidarité</h1>
+        {% if current_user.role in ['admin', 'employe'] %}
+            <a href="{{ url_for('creer_groupe') }}" class="btn btn-creer">➕ Créer un groupe</a>
+        {% endif %}
+        <a href="
+            {% if current_user.role == 'admin' %}
+                {{ url_for('admin_dashboard') }}
+            {% elif current_user.role == 'employe' %}
+                {{ url_for('employe_dashboard') }}
+            {% else %}
+                {{ url_for('client_dashboard') }}
+            {% endif %}
+        " style="color: white;">← Retour</a>
+    </div>
+
+    <div class="container">
+        {% if groupes %}
+            {% for groupe in groupes %}
+            <div class="groupe-card">
+                <h2>{{ groupe.nom }}</h2>
+                <p><strong>Code:</strong> {{ groupe.code_groupe }}</p>
+                <p><strong>Zone:</strong> {{ groupe.zone }}</p>
+                <p><strong>Date de création:</strong> {{ groupe.date_creation.strftime('%d/%m/%Y') }}</p>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <strong>Membres</strong><br>
+                        {{ Client.query.filter_by(groupe_id=groupe.id).count() }}
+                    </div>
+                    <div class="stat-item">
+                        <strong>Prêts actifs</strong><br>
+                        {{ Pret.query.filter_by(groupe_id=groupe.id, statut='approuve').count() }}
+                    </div>
+                    <div class="stat-item">
+                        <strong>Taux remb.</strong><br>
+                        95%
+                    </div>
+                </div>
+
+                <div>
+                    <a href="{{ url_for('detail_groupe', groupe_id=groupe.id) }}" class="btn btn-details">📊 Détails</a>
+                    {% if not current_user.role and not current_user.groupe_id %}
+                        <a href="{{ url_for('rejoindre_groupe', groupe_id=groupe.id) }}" class="btn btn-rejoindre">👥 Rejoindre</a>
+                    {% elif not current_user.role and current_user.groupe_id == groupe.id %}
+                        <span style="color: #28a745; font-weight: bold;">✅ Membre</span>
+                        <a href="{{ url_for('demande_pret_solidaire', groupe_id=groupe.id) }}" class="btn" style="background: #ffc107; color: black;">💰 Demander un prêt</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="groupe-card">
+                <p>Aucun groupe de solidarité n'a été créé pour le moment.</p>
+                {% if current_user.role in ['admin', 'employe'] %}
+                    <a href="{{ url_for('creer_groupe') }}" class="btn btn-creer">➕ Créer le premier groupe</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

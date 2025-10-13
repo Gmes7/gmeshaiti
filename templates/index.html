@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h2>Bienvenue sur GMES</h2>
+    <p>Système de Gestion Multi-Plateforme</p>
+
+    <div class="cta-buttons">
+        <a href="{{ url_for('client_portal') }}" class="btn btn-primary">Portail Client</a>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Administration</a>
+        <a href="{{ url_for('employee_section') }}" class="btn btn-tertiary">Espace Employés</a>
+    </div>
+</div>
+
+<div class="status-card">
+    <h3>✅ Système Opérationnel</h3>
+    <p>GMES est maintenant fonctionnel avec toutes les plateformes:</p>
+    <ul>
+        <li>🌐 <strong>Web</strong> - Interface complète</li>
+        <li>🖥️ <strong>Desktop</strong> - Application de réception</li>
+        <li>📱 <strong>Mobile</strong> - Application mobile</li>
+    </ul>
+</div>
+{% endblock %}

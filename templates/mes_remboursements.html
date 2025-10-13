@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Remboursements - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #007bff; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+        .remboursement-card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .statut { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.9rem; }
+        .statut-paye { background: #d1ecf1; color: #0c5460; }
+        .statut-en_retard { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Mes Remboursements</h1>
+        <a href="{{ url_for('client_dashboard') }}" style="color: white;">← Retour</a>
+    </div>
+
+    <div class="container">
+        <a href="{{ url_for('nouveau_remboursement') }}" class="btn">💳 Nouveau Remboursement</a>
+
+        {% if remboursements_avec_prets %}
+            {% for item in remboursements_avec_prets %}
+            <div class="remboursement-card">
+                <h3>Remboursement #{{ item.remboursement.id }}</h3>
+                <p><strong>Prêt:</strong> #{{ item.pret.id }} - {{ item.pret.montant }} HTG</p>
+                <p><strong>Montant remboursé:</strong> {{ item.remboursement.montant }} HTG</p>
+                <p><strong>Date:</strong> {{ item.remboursement.date_remboursement.strftime('%d/%m/%Y à %H:%M') }}</p>
+                <p><strong>Méthode:</strong> {{ item.remboursement.type_paiement }}</p>
+                <p><strong>Référence:</strong> {{ item.remboursement.reference }}</p>
+                <p><strong>Statut:</strong>
+                    <span class="statut statut-{{ item.remboursement.statut }}">
+                        {% if item.remboursement.statut == 'paye' %}✅ Payé
+                        {% elif item.remboursement.statut == 'en_retard' %}⏰ En retard
+                        {% else %}{{ item.remboursement.statut }}{% endif %}
+                    </span>
+                </p>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="remboursement-card">
+                <p>Aucun remboursement effectué pour le moment.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - GMES Microcrédit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-box {
+            background: white;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .logo { font-size: 3rem; margin-bottom: 1rem; }
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: #333; }
+        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        input:focus { outline: none; border-color: #667eea; }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #219653; }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #c62828;
+        }
+        .comptes-test {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+            border-left: 4px solid #667eea;
+        }
+        .comptes-test h4 { margin-top: 0; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="logo">🏦</div>
+        <h1>GMES Microcrédit</h1>
+        <p style="color: #666; margin-bottom: 2rem;">Système de gestion de microcrédit</p>
+
+        {% if erreur %}
+        <div class="error">
+            <strong>❌ Erreur</strong><br>
+            {{ erreur }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Identifiant:</label>
+                <input type="text" name="identifiant" placeholder="Votre identifiant" required>
+            </div>
+
+            <div class="form-group">
+                <label>Mot de passe:</label>
+                <input type="password" name="password" placeholder="Votre mot de passe" required>
+            </div>
+
+            <button type="submit">🔐 Se connecter</button>
+        </form>
+
+        <div class="comptes-test">
+            <h4>Comptes de démonstration</h4>
+            <p><strong>Administrateur:</strong> admin / admin123</p>
+            <p><strong>Employé:</strong> employe / employe123</p>
+            <p><strong>Client:</strong> client@example.com / client123</p>
+        </div>
+    </div>
+</body>
+</html>

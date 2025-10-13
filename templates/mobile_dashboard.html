@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Mobile</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            padding-bottom: 70px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 60px 20px 30px;
+            text-align: center;
+        }
+        .welcome { font-size: 18px; opacity: 0.9; }
+        .username { font-size: 24px; font-weight: bold; margin: 5px 0; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .quick-actions {
+            padding: 0 20px;
+            margin: 20px 0;
+        }
+        .action-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            margin: 10px 0;
+            text-align: left;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        .nav-item {
+            text-align: center;
+            color: #666;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .nav-item.active { color: #667eea; }
+        .nav-icon { font-size: 20px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="welcome">Bonjour</div>
+        <div class="username">{{ current_user.prenom }} {{ current_user.nom }}</div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.score_credit|default(750) }}</div>
+            <div class="stat-label">Score Credit</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.prets_actifs|default(0) }}</div>
+            <div class="stat-label">Prêts Actifs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.niveau|default(1) }}</div>
+            <div class="stat-label">Niveau</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.points|default(0) }}</div>
+            <div class="stat-label">Points</div>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <button class="action-btn" onclick="location.href='{{ url_for('mes_prets') }}'">
+            💰 Mes Prêts
+        </button>
+        <button class="action-btn" onclick="location.href='{{ url_for('demande_pret') }}'">
+            📋 Nouveau Prêt
+        </button>
+        <button class="action-btn" onclick="location.href='{{ url_for('mes_remboursements') }}'">
+            💳 Remboursements
+        </button>
+        <button class="action-btn" onclick="location.href='{{ url_for('profil_gamification') }}'">
+            🏆 Mon Profil
+        </button>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="{{ url_for('mobile_dashboard') }}" class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            Accueil
+        </a>
+        <a href="{{ url_for('mes_prets') }}" class="nav-item">
+            <span class="nav-icon">💰</span>
+            Prêts
+        </a>
+        <a href="{{ url_for('mes_remboursements') }}" class="nav-item">
+            <span class="nav-icon">💳</span>
+            Paiements
+        </a>
+        <a href="{{ url_for('profil_gamification') }}" class="nav-item">
+            <span class="nav-icon">👤</span>
+            Profil
+        </a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ groupe.nom }} - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #28a745; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .section { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 10px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1rem 0; }
+        .stat-card { background: #f8f9fa; padding: 1rem; border-radius: 5px; text-align: center; }
+        .member-list, .loan-list { list-style: none; padding: 0; }
+        .member-item, .loan-item { padding: 0.5rem; border-bottom: 1px solid #eee; }
+        .btn { display: inline-block; padding: 0.5rem 1rem; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .btn-pret { background: #007bff; }
+        .btn-quitter { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 {{ groupe.nom }}</h1>
+        <a href="{{ url_for('liste_groupes') }}" style="color: white;">← Retour aux groupes</a>
+    </div>
+
+    <div class="container">
+        <!-- Statistiques du groupe -->
+        <div class="section">
+            <h2>📊 Statistiques du Groupe</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <strong>Membres</strong><br>
+                    {{ stats.nombre_membres }}
+                </div>
+                <div class="stat-card">
+                    <strong>Prêts Actifs</strong><br>
+                    {{ stats.prets_actifs }}
+                </div>
+                <div class="stat-card">
+                    <strong>Montant Total</strong><br>
+                    {{ "%.2f"|format(stats.montant_total_prets) }} HTG
+                </div>
+                <div class="stat-card">
+                    <strong>Taux Remb.</strong><br>
+                    {{ stats.taux_remboursement }}%
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des membres -->
+        <div class="section">
+            <h2>👥 Membres du Groupe</h2>
+            <ul class="member-list">
+                {% for client in clients %}
+                <li class="member-item">
+                    <strong>{{ client.prenom }} {{ client.nom }}</strong><br>
+                    <small>{{ client.profession }} - {{ client.telephone }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Prêts du groupe -->
+        <div class="section">
+            <h2>💰 Prêts du Groupe</h2>
+            <ul class="loan-list">
+                {% for pret in prets %}
+                <li class="loan-item">
+                    <strong>Prêt #{{ pret.id }}</strong> - {{ pret.montant }} HTG<br>
+                    <small>
+                        Client: {{ Client.query.get(pret.client_id).prenom }}
+                        | Statut:
+                        <span style="color:
+                            {% if pret.statut == 'approuve' %}#28a745
+                            {% elif pret.statut == 'en_attente_solidaire' %}#ffc107
+                            {% else %}#dc3545{% endif %}">
+                            {{ pret.statut }}
+                        </span>
+                    </small>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Actions -->
+        <div class="section">
+            <h2>⚡ Actions</h2>
+            {% if not current_user.role and current_user.groupe_id == groupe.id %}
+                <a href="{{ url_for('demande_pret_solidaire', groupe_id=groupe.id) }}" class="btn btn-pret">💰 Demander un prêt solidaire</a>
+                <a href="{{ url_for('quitter_groupe', groupe_id=groupe.id) }}" class="btn btn-quitter" onclick="return confirm('Êtes-vous sûr de vouloir quitter ce groupe?')">🚪 Quitter le groupe</a>
+            {% elif not current_user.role and not current_user.groupe_id %}
+                <a href="{{ url_for('rejoindre_groupe', groupe_id=groupe.id) }}" class="btn" style="background: #28a745;">👥 Rejoindre ce groupe</a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

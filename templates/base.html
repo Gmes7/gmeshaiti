@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMES Microcrédit</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles_microcredit.css') }}">
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <h1>🏦 GMES Microcrédit</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('accueil') }}">Accueil</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('tableau_de_bord') }}">Tableau de Bord</a>
+                    <a href="{{ url_for('deconnexion') }}">Déconnexion</a>
+                    <span class="user-info">Connecté en tant que:{% if current_user.nom %}{{ current_user.nom }} {{ current_user.prenom }}{% else %}{{ current_user.username }}{% endif %}</span>
+                {% else %}
+                    <a href="{{ url_for('connexion') }}">Connexion</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Messages flash -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 GMES Microcrédit - Système de Gestion de Microcrédit</p>
+    </footer>
+</body>
+</html>

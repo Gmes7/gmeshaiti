@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #dc3545; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2rem 0; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👨‍💼 Administration GMES</h1>
+        <p>Connecté en tant que: {{ current_user.nom }} {{ current_user.prenom }} (Admin)</p>
+        <a href="{{ url_for('deconnexion') }}" style="color: white;">Déconnexion</a>
+    </div>
+
+    <div class="container">
+        <h2>Tableau de Bord Administrateur</h2>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>👥 Clients</h3>
+                <p>25</p>
+            </div>
+            <div class="stat-card">
+                <h3>💰 Prêts Actifs</h3>
+                <p>18</p>
+            </div>
+            <div class="stat-card">
+                <h3>⏳ En Attente</h3>
+                <p>7</p>
+            </div>
+            <div class="stat-card">
+                <h3>📈 Performance</h3>
+                <p>98%</p>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 2rem; border-radius: 10px;">
+            <h3>Actions Administrateur</h3>
+            <a href="{{ url_for('prets_en_attente') }}" class="btn">📋 Gérer les prêts</a>
+            <a href="{{ url_for('gerer_employes') }}" class="btn btn-primary">👥 Gérer les employés</a>
+            <a href="#" class="btn">📊 Rapports</a>
+            <a href="{{ url_for('debug_users') }}" class="btn">🐛 Debug</a>
+        </div>
+    </div>
+</body>
+</html>
+
+<a href="{{ url_for('admin_remboursements') }}" class="btn">💳 Voir tous les remboursements</a>
+<a href="{{ url_for('admin_rapports') }}" class="btn">📊 Rapports et Statistiques</a>
+<a href="{{ url_for('admin_notifications') }}" class="btn">🔔 Gérer les notifications</a>

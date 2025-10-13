@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau Remboursement - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 10px; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #28a745; color: white; padding: 1rem 2rem; border: none; border-radius: 5px; cursor: pointer; }
+        .pret-info { background: #e8f5e8; padding: 1rem; border-radius: 5px; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💳 Nouveau Remboursement</h1>
+
+        <div class="pret-info">
+            <h3>Informations du prêt</h3>
+            <p id="pret-details">Sélectionnez un prêt pour voir les détails</p>
+        </div>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="pret_id">Prêt à rembourser:</label>
+                <select name="pret_id" id="pret_id" onchange="chargerDetailsPret()" required>
+                    <option value="">Sélectionnez un prêt</option>
+                    {% for pret in prets %}
+                    <option value="{{ pret.id }}" data-montant="{{ pret.montant }}" data-mensualite="{{ pret.mensualite }}">
+                        Prêt #{{ pret.id }} - {{ pret.montant }} HTG ({{ pret.mensualite }} HTG/mois)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Montant du remboursement (HTG):</label>
+                <input type="number" name="montant" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label>Méthode de paiement:</label>
+                <select name="type_paiement" required>
+                    <option value="espece">Espèces</option>
+                    <option value="mobile_money">Mobile Money</option>
+                    <option value="virement">Virement bancaire</option>
+                    <option value="cheque">Chèque</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Référence de paiement:</label>
+                <input type="text" name="reference" placeholder="Numéro de transaction ou référence">
+            </div>
+
+            <button type="submit">💸 Effectuer le remboursement</button>
+        </form>
+
+        <a href="{{ url_for('client_dashboard') }}" style="display: inline-block; margin-top: 1rem;">← Retour</a>
+    </div>
+
+    <script>
+        function chargerDetailsPret() {
+            const select = document.getElementById('pret_id');
+            const selectedOption = select.options[select.selectedIndex];
+            const details = document.getElementById('pret-details');
+
+            if (selectedOption.value) {
+                const montant = selectedOption.getAttribute('data-montant');
+                const mensualite = selectedOption.getAttribute('data-mensualite');
+                details.innerHTML = `
+                    <strong>Montant du prêt:</strong> ${montant} HTG<br>
+                    <strong>Mensualité:</strong> ${mensualite} HTG<br>
+                    <strong>Recommandé:</strong> ${mensualite} HTG
+                `;
+            } else {
+                details.textContent = 'Sélectionnez un prêt pour voir les détails';
+            }
+        }
+    </script>
+</body>
+</html>

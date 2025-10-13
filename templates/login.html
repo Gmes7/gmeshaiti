@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-form">
+        <h2>🔐 Connexion GMES</h2>
+
+        <form>
+            <div class="form-group">
+                <label>Email ou Identifiant:</label>
+                <input type="text" placeholder="admin ou admin@gmes.com">
+            </div>
+
+            <div class="form-group">
+                <label>Mot de passe:</label>
+                <input type="password" placeholder="Votre mot de passe">
+            </div>
+
+            <div class="form-group">
+                <label>Type d'utilisateur:</label>
+                <select>
+                    <option>Client</option>
+                    <option>Employé</option>
+                    <option>Administrateur</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn btn-primary">Se connecter</button>
+        </form>
+
+        <div class="demo-accounts">
+            <h4>Comptes de démonstration:</h4>
+            <p><strong>Admin:</strong> admin / admin@gmes.com</p>
+            <p><strong>Employé:</strong> EMP001 / employe@gmes.com</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

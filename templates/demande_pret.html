@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demande de Prêt - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 10px; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #27ae60; color: white; padding: 1rem 2rem; border: none; border-radius: 5px; cursor: pointer; }
+        .calcul-resultat { background: #e8f5e8; padding: 1rem; border-radius: 5px; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Demande de Prêt</h1>
+
+        <div class="calcul-resultat" id="resultatCalcul" style="display: none;">
+            <h4>Résultat du calcul:</h4>
+            <p>Mensualité: <strong id="mensualite">0</strong> HTG</p>
+            <p>Total à rembourser: <strong id="total">0</strong> HTG</p>
+            <p>Coût du crédit: <strong id="cout">0</strong> HTG</p>
+        </div>
+
+        <form method="POST" onsubmit="return validerFormulaire()">
+            <div class="form-group">
+                <label>Montant demandé (HTG):</label>
+                <input type="number" name="montant" id="montant" min="5000" max="100000" required
+                       onchange="calculerPret()">
+            </div>
+
+            <div class="form-group">
+                <label>Durée (mois):</label>
+                <select name="duree" id="duree" onchange="calculerPret()" required>
+                    <option value="3">3 mois</option>
+                    <option value="6">6 mois</option>
+                    <option value="12" selected>12 mois</option>
+                    <option value="18">18 mois</option>
+                    <option value="24">24 mois</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Motif du prêt:</label>
+                <select name="motif" required>
+                    <option value="commerce">Commerce</option>
+                    <option value="agriculture">Agriculture</option>
+                    <option value="artisanat">Artisanat</option>
+                    <option value="education">Éducation</option>
+                    <option value="sante">Santé</option>
+                    <option value="autre">Autre</option>
+                </select>
+            </div>
+
+            <button type="submit">Soumettre la demande</button>
+        </form>
+
+        <a href="{{ url_for('tableau_de_bord') }}" style="display: inline-block; margin-top: 1rem;">← Retour</a>
+    </div>
+
+    <script>
+        function calculerPret() {
+            const montant = document.getElementById('montant').value;
+            const duree = document.getElementById('duree').value;
+
+            if (montant && duree) {
+                fetch('/api/calcul-pret', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ montant: parseFloat(montant), duree: parseInt(duree) })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('mensualite').textContent = data.mensualite;
+                    document.getElementById('total').textContent = data.total_rembourser;
+                    document.getElementById('cout').textContent = data.cout_credit;
+                    document.getElementById('resultatCalcul').style.display = 'block';
+                });
+            }
+        }
+
+        function validerFormulaire() {
+            const montant = document.getElementById('montant').value;
+            if (montant < 5000 || montant > 100000) {
+                alert('Le montant doit être entre 5,000 et 100,000 HTG');
+                return false;
+            }
+            return true;
+        }
+    </script>
+</body>
+</html>

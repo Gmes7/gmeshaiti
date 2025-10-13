@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Notifications - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #17a2b8; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; padding: 2rem; border-radius: 10px; margin-bottom: 2rem; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.75rem 1.5rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .btn-test { background: #28a745; }
+        .config-item { margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔔 Gestion des Notifications</h1>
+        <a href="{{ url_for('admin_dashboard') }}" style="color: white;">← Retour</a>
+    </div>
+
+    <div class="container">
+        <!-- Test de notifications -->
+        <div class="card">
+            <h2>🧪 Test des Notifications</h2>
+            <p>Testez l'envoi de notifications à un client de démonstration.</p>
+            <a href="{{ url_for('test_notification') }}" class="btn btn-test">🚀 Tester une notification</a>
+        </div>
+
+        <!-- Configuration -->
+        <div class="card">
+            <h2>⚙️ Configuration</h2>
+
+            <div class="config-item">
+                <h3>📧 Configuration Email</h3>
+                <p><strong>Serveur SMTP:</strong> {{ config.get('SMTP_SERVER', 'Non configuré') }}</p>
+                <p><strong>Statut:</strong>
+                    <span style="color: {% if config.get('SMTP_USERNAME') %}#28a745{% else %}#dc3545{% endif %};">
+                        {% if config.get('SMTP_USERNAME') %}✅ Configuré{% else %}❌ Non configuré{% endif %}
+                    </span>
+                </p>
+            </div>
+
+            <div class="config-item">
+                <h3>📱 Configuration SMS</h3>
+                <p><strong>API Key:</strong> {{ '••••••••' if config.get('SMS_API_KEY') else 'Non configuré' }}</p>
+                <p><strong>Statut:</strong>
+                    <span style="color: {% if config.get('SMS_API_KEY') %}#28a745{% else %}#dc3545{% endif %};">
+                        {% if config.get('SMS_API_KEY') %}✅ Configuré{% else %}❌ Non configuré{% endif %}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Types de notifications -->
+        <div class="card">
+            <h2>📋 Types de Notifications</h2>
+            <ul>
+                <li>✅ <strong>Approbation de prêt</strong> - Email + SMS</li>
+                <li>❌ <strong>Rejet de prêt</strong> - Email + SMS</li>
+                <li>💳 <strong>Remboursement réussi</strong> - Email + SMS</li>
+                <li>⏰ <strong>Rappel de remboursement</strong> - Email + SMS</li>
+                <li>👥 <strong>Adhésion à un groupe</strong> - Email + SMS</li>
+            </ul>
+        </div>
+
+        <!-- Logs des notifications -->
+        <div class="card">
+            <h2>📊 Statistiques d'Envoi</h2>
+            <p><strong>Mode actuel:</strong>
+                <span style="color: #ffc107; font-weight: bold;">
+                    {% if config.get('SMTP_USERNAME') and config.get('SMS_API_KEY') %}
+                        🔥 PRODUCTION
+                    {% else %}
+                        🧪 SIMULATION
+                    {% endif %}
+                </span>
+            </p>
+            <p><em>En mode simulation, les notifications sont loggées mais non envoyées.</em></p>
+        </div>
+    </div>
+</body>
+</html>

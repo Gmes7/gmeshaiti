@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>👥 Gestion des Employés</h2>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Liste des employés</h3>
+            <a href="{{ url_for('creer_employe') }}" class="btn btn-primary">➕ Ajouter un employé</a>
+        </div>
+
+        <div class="card-body">
+            {% if employes %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Date création</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employe in employes %}
+                    <tr>
+                        <td>{{ employe.prenom }} {{ employe.nom }}</td>
+                        <td>{{ employe.email }}</td>
+                        <td>{{ employe.telephone }}</td>
+                        <td>{{ employe.date_creation.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <a href="#" class="btn btn-sm btn-warning">✏️ Modifier</a>
+                            <a href="#" class="btn btn-sm btn-danger">🗑️ Supprimer</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Aucun employé trouvé.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

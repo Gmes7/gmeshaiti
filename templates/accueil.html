@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-microcredit">
+    <div class="hero-content">
+        <h1>🏦 GMES Microcrédit</h1>
+        <p class="slogan">Votre partenaire de confiance pour l'autonomie financière</p>
+        <p class="description">
+            Système de gestion de microcrédit pour l'inclusion financière des communautés
+        </p>
+
+        <div class="cta-buttons">
+            <a href="{{ url_for('connexion') }}" class="btn btn-primary">
+                🔐 Se Connecter
+            </a>
+            <a href="#services" class="btn btn-secondary">
+                📋 Nos Services
+            </a>
+        </div>
+    </div>
+</div>
+
+<div id="services" class="services-section">
+    <h2>📊 Nos Services de Microcrédit</h2>
+
+    <div class="services-grid">
+        <div class="service-card">
+            <div class="service-icon">💰</div>
+            <h3>Prêts Individuels</h3>
+            <p>Crédits adaptés aux besoins individuels des entrepreneurs</p>
+            <ul>
+                <li>Montant: 5,000 à 100,000 HTG</li>
+                <li>Durée: 3 à 24 mois</li>
+                <li>Taux compétitifs</li>
+            </ul>
+        </div>
+
+        <div class="service-card">
+            <div class="service-icon">👥</div>
+            <h3>Crédit Solidaire</h3>
+            <p>Prêts de groupe avec garantie solidaire</p>
+            <ul>
+                <li>Groupes de 5 à 10 personnes</li>
+                <li>Garantie collective</li>
+                <li>Accompagnement technique</li>
+            </ul>
+        </div>
+
+        <div class="service-card">
+            <div class="service-icon">📱</div>
+            <h3>Gestion Mobile</h3>
+            <p>Accédez à votre compte depuis votre mobile</p>
+            <ul>
+                <li>Demandes de prêt en ligne</li>
+                <li>Suivi des remboursements</li>
+                <li>Notifications SMS</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="stats-section">
+    <div class="stats-container">
+        <div class="stat-item">
+            <div class="stat-number">1,250+</div>
+            <div class="stat-label">Clients Actifs</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">₲ 5.2M</div>
+            <div class="stat-label">Prêts Accordés</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">98%</div>
+            <div class="stat-label">Taux de Remboursement</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">25+</div>
+            <div class="stat-label">Communautés Desservies</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

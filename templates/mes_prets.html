@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Prêts - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .pret-card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .statut { display: inline-block; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.9rem; }
+        .statut-en_attente { background: #fff3cd; color: #856404; }
+        .statut-approuve { background: #d1ecf1; color: #0c5460; }
+        .statut-rejete { background: #f8d7da; color: #721c24; }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Mes Demandes de Prêt</h1>
+        <a href="{{ url_for('demande_pret') }}" class="btn">Nouvelle Demande</a>
+        <a href="{{ url_for('tableau_de_bord') }}" class="btn">← Retour</a>
+
+        {% if prets %}
+            {% for pret in prets %}
+            <div class="pret-card">
+                <h3>Prêt #{{ pret.id }} - {{ pret.montant }} HTG</h3>
+                <p><strong>Durée:</strong> {{ pret.duree_mois }} mois</p>
+                <p><strong>Mensualité:</strong> {{ pret.mensualite }} HTG</p>
+                <p><strong>Motif:</strong> {{ pret.motif }}</p>
+                <p><strong>Date:</strong> {{ pret.date_demande.strftime('%d/%m/%Y') }}</p>
+                <p><strong>Statut:</strong>
+                    <span class="statut statut-{{ pret.statut }}">
+                        {% if pret.statut == 'en_attente' %}⏳ En attente
+                        {% elif pret.statut == 'approuve' %}✅ Approuvé
+                        {% elif pret.statut == 'rejete' %}❌ Rejeté
+                        {% else %}{{ pret.statut }}{% endif %}
+                    </span>
+                </p>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="pret-card">
+                <p>Aucune demande de prêt pour le moment.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
