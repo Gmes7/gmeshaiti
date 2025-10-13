@@ -1492,6 +1492,10 @@ def mobile_dashboard():
 
 
 # ... votre code existant ...
+@app.route("/")
+def home():
+    return {"message": "✅ API GMES Haiti en ligne et fonctionnelle"}
+
 
 if __name__ == '__main__':
     with app.app_context():
