@@ -8,7 +8,7 @@ Flask-Mail==0.10.0
 Flask-Babel==3.1.0
 
 # --- Database & Supabase ---
-psycopg2-binary==2.9.9        # PostgreSQL client (utilisé par Supabase)
+psycopg2-binary==2.9.11       # PostgreSQL client (utilisé par Supabase)
 supabase==2.3.5               # SDK Python officiel Supabase
 SQLAlchemy==2.0.31
 
