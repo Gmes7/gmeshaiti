@@ -1,13 +1,11 @@
-
 services:
   - type: web
-    name: gmes
+    name: gmes-microcredit
     env: python
+    plan: free
     buildCommand: |
-      apt-get update && apt-get install -y python3.10 python3.10-venv python3.10-dev
-      python3.10 -m venv .venv
-      . .venv/bin/activate
-      pip install --upgrade pip setuptools wheel
+      pip install --upgrade pip
+      pip install cmake
+      pip install dlib==19.24.2 --no-cache-dir
       pip install -r requirements.txt
-    startCommand: |
-      . .venv/bin/activate && gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
