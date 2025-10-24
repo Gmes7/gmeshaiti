@@ -30,6 +30,28 @@ from models import Groupe  # Import direct du modèle
 # Importer et enregistrer le blueprint auth
 load_dotenv()  # Charge les variables d'environnement
 
+import os
+
+# Désactiver face-recognition sur Render
+ON_RENDER = 'RENDER' in os.environ
+
+if ON_RENDER:
+    # Simuler face_recognition sur Render
+    class FakeFaceRecognition:
+        def face_encodings(self, *args, **kwargs):
+            return [None]
+
+        def face_distance(self, *args, **kwargs):
+            return [0.5]
+
+        def load_image_file(self, *args, **kwargs):
+            return None
+
+
+    # Créer un module factice
+    import sys
+
+    sys.modules['face_recognition'] = FakeFaceRecognition()
 
 # Configuration de l'application
 app = Flask(__name__)
