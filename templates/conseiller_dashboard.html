@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conseiller - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #17a2b8; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2rem 0; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .btn-info { background: #17a2b8; }
+        .client-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .client-card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 Conseiller Clientèle GMES</h1>
+        <p>Connecté en tant que: {{ current_user.prenom }} {{ current_user.nom }}</p>
+        <a href="{{ url_for('deconnexion') }}" style="color: white;">Déconnexion</a>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <h3>👤 Mes Clients</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ total_clients }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>📋 Dossiers Actifs</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ dossiers_actifs }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>⏳ En Attente</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ demandes_attente }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>📞 RdV Aujourd'hui</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ rdv_aujourdhui }}</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
+            <!-- Actions -->
+            <div style="background: white; padding: 2rem; border-radius: 10px;">
+                <h3>🎯 Mes Actions</h3>
+                <a href="{{ url_for('creer_dossier') }}" class="btn btn-info">➕Ouverture Compte</a>
+                <a href="{{ url_for('liste_groupes') }}" class="btn">👥 Voir Groupes</a>
+                <a href="{{ url_for('mes_groupes') }}" class="btn">👥 Voir Mon Groupe</a>
+                <a href="{{ url_for('demande_pret') }}" class="btn">📋 Nouvelle Demande Prêt</a>
+                <a href="{{ url_for('prets_en_attente') }}" class="btn">Prêts en Attente</a>
+                <a href="{{ url_for('liste_groupes') }}" class="btn">👥 Voir Tous les Groupes</a>
+                <a href="{{ url_for('tableau_de_bord') }}" class="btn">📊 Statistiques</a>
+            </div>
+
+            <!-- Alertes -->
+            <div style="background: white; padding: 2rem; border-radius: 10px;">
+                <h3>🔔 Alertes</h3>
+                {% if clients_prioritaires %}
+                    <p><strong>🎯 {{ clients_prioritaires }} client(s) prioritaire(s)</strong></p>
+                {% endif %}
+                {% if dossiers_urgence %}
+                    <p><strong>⚠️ {{ dossiers_urgence }} dossier(s) urgent(s)</strong></p>
+                {% endif %}
+                <p><strong>📞 {{ appels_attente }} appel(s) en attente</strong></p>
+            </div>
+        </div>
+
+        <!-- Clients Récents -->
+        <div style="background: white; padding: 2rem; border-radius: 10px;">
+            <h3>👤 Clients Récents</h3>
+            <div class="client-grid">
+                {% if clients_avec_prets %}
+                    {% for item in clients_avec_prets %}
+                    <div class="client-card">
+                        <h4>{{ item.client.prenom }} {{ item.client.nom }}</h4>
+                        <p>📞 {{ item.client.telephone|default('N/A') }}</p>
+                        <p>📧 {{ item.client.email|default('N/A') }}</p>
+                        <p>💰 {{ item.nb_prets }} prêt(s)</p>
+                        <a href="#" class="btn">Voir Dossier</a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p>Aucun client récent.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

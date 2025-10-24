@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>🔒 Sécurité</h2>
+
+    <div class="card">
+        <div class="card-body">
+            <h4>Changer le mot de passe</h4>
+            <form id="passwordForm">
+                <div class="mb-3">
+                    <label>Mot de passe actuel</label>
+                    <input type="password" class="form-control" id="currentPassword" required>
+                </div>
+                <div class="mb-3">
+                    <label>Nouveau mot de passe</label>
+                    <input type="password" class="form-control" id="newPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Changer le mot de passe</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const response = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            current_password: document.getElementById('currentPassword').value,
+            new_password: document.getElementById('newPassword').value
+        })
+    });
+
+    const result = await response.json();
+    alert(result.success ? 'Mot de passe changé!' : 'Erreur: ' + result.error);
+});
+</script>
+{% endblock %}

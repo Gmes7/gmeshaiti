@@ -7,6 +7,25 @@ from utils.notifications import notification_manager
 import os
 from dotenv import load_dotenv
 from routes.auth import auth_bp  # ✅ Import corrigé
+import os
+import cv2
+import numpy as np
+from werkzeug.utils import secure_filename
+import face_recognition
+from PIL import Image
+import io
+import base64
+
+import warnings
+from pkg_resources import PkgResourcesDeprecationWarning
+warnings.filterwarnings("ignore", category=PkgResourcesDeprecationWarning)
+
+# Créer le dossier uploads s'il n'existe pas
+# if not os.path.exists('static/uploads'):
+#     os.makedirs('static/uploads')
+
+# from app import db  # Assure-toi que db est bien importé depuis ton app principale
+from models import Groupe  # Import direct du modèle
 
 # Importer et enregistrer le blueprint auth
 load_dotenv()  # Charge les variables d'environnement
@@ -17,6 +36,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'gmes-microcredit-2024')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gmes.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Configuration des uploads
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # Enregistre le Blueprint
 app.register_blueprint(auth_bp, url_prefix="/auth")
 
@@ -32,17 +55,25 @@ login_manager.login_view = 'connexion'
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
+
+
     id = db.Column(db.Integer, primary_key=True)
 
     # Champs communs à tous les utilisateurs
     username = db.Column(db.String(80), unique=True, nullable=True)
     email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(255))
-    role = db.Column(db.String(20), default='client')  # client, employe, admin
+    fonction = db.Column(db.String(50))  # caissier, conseiller, etc.
+    role = db.Column(db.String(20), default='client')  # client, employe, admin, superviseur
+    statut = db.Column(db.String(20), default='actif')  # 'actif', 'en_attente', 'inactif'
+    approuve_par = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Admin qui a approuvé
+    date_approbation = db.Column(db.DateTime, nullable=True)
+    permissions = db.Column(db.Text)  # Stocke les permissions en JSON
     nom = db.Column(db.String(100))
     prenom = db.Column(db.String(100))
     telephone = db.Column(db.String(20))
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    groupe_id = db.Column(db.Integer, db.ForeignKey('groupes.id'), nullable=True)
 
     # Champs spécifiques aux clients
     code_client = db.Column(db.String(20), unique=True, nullable=True)
@@ -52,14 +83,78 @@ class User(UserMixin, db.Model):
     profession = db.Column(db.String(100))
     revenu_mensuel = db.Column(db.Float, default=0)
     date_inscription = db.Column(db.DateTime, default=datetime.utcnow)
-    statut = db.Column(db.String(20), default='actif')
     groupe_id = db.Column(db.Integer, db.ForeignKey('groupes.id'), nullable=True)
+
+    # Nouveaux champs
+    depenses_mensuelles = db.Column(db.Float, default=0)
+    capacite_remboursement = db.Column(db.Float, default=0)
+    photo_id = db.Column(db.String(255))
+    photo_selfie = db.Column(db.String(255))
+    verification_faciale = db.Column(db.Boolean, default=False)
+    score_verification = db.Column(db.Float, default=0)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # def has_permission(self, permission_name):
+    #     """Méthode d'instance pour has_permission - Version corrigée"""
+    #     if not self:
+    #         return False
+    #
+    #     # Admin a tous les accès
+    #     if self.role == 'admin':
+    #         return True
+    #
+    #     # Superviseur a accès à tous les dashboards employés
+    #     elif self.role == 'superviseur':
+    #         return permission_name in ['caissier', 'conseiller', 'analyste_credit', 'gestionnaire_groupe', 'rapports']
+    #
+    #     # Employé vérifie ses permissions spécifiques
+    #     elif self.role == 'employe':
+    #         if self.permissions:
+    #             try:
+    #                 import json
+    #                 permissions_list = json.loads(self.permissions)
+    #                 return permission_name in permissions_list
+    #             except:
+    #                 return False
+    #         # Fallback: vérifier via la fonction
+    #         return current_user.has_permission(self, permission_name)
+    #
+    #     return False
+
+    def has_permission(self, permission_name):
+        """Méthode d'instance pour has_permission - Version corrigée"""
+        if not self:
+            return False
+
+        # Admin a tous les accès
+        if self.role == 'admin':
+            return True
+
+        # Superviseur a accès à tous les dashboards employés
+        elif self.role == 'superviseur':
+            return permission_name in ['caissier', 'conseiller', 'analyste_credit', 'gestionnaire_groupe', 'rapports']
+
+        # Employé vérifie ses permissions spécifiques
+        elif self.role == 'employe':
+            if self.permissions:
+                try:
+                    import json
+                    permissions_list = json.loads(self.permissions)
+                    return permission_name in permissions_list
+                except:
+                    # Fallback: vérification par fonction
+                    return getattr(self, 'fonction', None) == permission_name
+            # Fallback: vérification par fonction
+            return getattr(self, 'fonction', None) == permission_name
+
+        # Client n'a pas de permissions spéciales
+        return False
+
 
     @property
     def est_client(self):
@@ -76,6 +171,141 @@ class User(UserMixin, db.Model):
     @property
     def nom_complet(self):
         return f"{self.prenom} {self.nom}".strip()
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def compare_faces(id_image_path, selfie_image_path):
+    """Compare les visages entre photo ID et selfie"""
+    try:
+        # Charger les images
+        id_image = face_recognition.load_image_file(id_image_path)
+        selfie_image = face_recognition.load_image_file(selfie_image_path)
+
+        # Détecter les visages
+        id_face_encodings = face_recognition.face_encodings(id_image)
+        selfie_face_encodings = face_recognition.face_encodings(selfie_image)
+
+        if not id_face_encodings or not selfie_face_encodings:
+            return False, "Aucun visage détecté dans une des images"
+
+        # Comparer les visages
+        match = face_recognition.compare_faces([id_face_encodings[0]], selfie_face_encodings[0])
+        distance = face_recognition.face_distance([id_face_encodings[0]], selfie_face_encodings[0])
+
+        return match[0], f"Similarité: {round((1 - distance[0]) * 100, 2)}%"
+
+    except Exception as e:
+        return False, f"Erreur de comparaison: {str(e)}"
+
+
+@app.route('/conseiller/creer-dossier', methods=['GET', 'POST'])
+@login_required
+def creer_dossier():
+    """Créer un nouveau dossier client avec reconnaissance faciale"""
+    if current_user.role != 'employe' or not current_user.has_permission('conseiller'):
+        return redirect(url_for('employe_dashboard'))
+
+    if request.method == 'POST':
+        try:
+            # Données de base
+            nom = request.form.get('nom')
+            prenom = request.form.get('prenom')
+            email = request.form.get('email')
+            telephone = request.form.get('telephone')
+            cin = request.form.get('cin')
+            adresse = request.form.get('adresse')
+            profession = request.form.get('profession')
+            revenu_mensuel = float(request.form.get('revenu_mensuel', 0))
+            depenses_mensuelles = float(request.form.get('depenses_mensuelles', 0))
+
+            # Gérer les photos (upload OU caméra)
+            photo_id_file = request.files.get('photo_id')
+            photo_selfie_file = request.files.get('photo_selfie')
+            photo_id_data = request.form.get('photo_id_data')  # Base64 de la caméra
+            photo_selfie_data = request.form.get('photo_selfie_data')
+
+            # Photo ID
+            if photo_id_data:  # Priorité à la caméra
+                id_filename = f"id_{cin}_camera.jpg"
+                id_path = os.path.join(app.config['UPLOAD_FOLDER'], id_filename)
+                save_base64_image(photo_id_data, id_path)
+            elif photo_id_file and allowed_file(photo_id_file.filename):
+                id_filename = f"id_{cin}_{secure_filename(photo_id_file.filename)}"
+                id_path = os.path.join(app.config['UPLOAD_FOLDER'], id_filename)
+                photo_id_file.save(id_path)
+            else:
+                return render_template('creer_dossier.html', error="Photo ID requise")
+
+            # Selfie
+            if photo_selfie_data:  # Priorité à la caméra
+                selfie_filename = f"selfie_{cin}_camera.jpg"
+                selfie_path = os.path.join(app.config['UPLOAD_FOLDER'], selfie_filename)
+                save_base64_image(photo_selfie_data, selfie_path)
+            elif photo_selfie_file and allowed_file(photo_selfie_file.filename):
+                selfie_filename = f"selfie_{cin}_{secure_filename(photo_selfie_file.filename)}"
+                selfie_path = os.path.join(app.config['UPLOAD_FOLDER'], selfie_filename)
+                photo_selfie_file.save(selfie_path)
+            else:
+                return render_template('creer_dossier.html', error="Selfie requis")
+
+            # Vérification faciale
+            match, message = compare_faces(id_path, selfie_path)
+
+            if not match:
+                # Supprimer les images si échec
+                os.remove(id_path)
+                os.remove(selfie_path)
+                return render_template('creer_dossier.html',
+                                       error=f"Échec vérification faciale: {message}")
+
+            # Calcul capacité d'emprunt
+            capacite_remboursement = revenu_mensuel - depenses_mensuelles
+            score_capacite = min(100, (capacite_remboursement / revenu_mensuel * 100)) if revenu_mensuel > 0 else 0
+
+            # Créer le client
+            nouveau_client = User(
+                nom=nom,
+                prenom=prenom,
+                email=email,
+                telephone=telephone,
+                cin=cin,
+                adresse=adresse,
+                profession=profession,
+                revenu_mensuel=revenu_mensuel,
+                depenses_mensuelles=depenses_mensuelles,
+                capacite_remboursement=capacite_remboursement,
+                photo_id=id_filename,
+                photo_selfie=selfie_filename,
+                verification_faciale=True,
+                score_verification=round((1 - face_recognition.face_distance(
+                    [face_recognition.face_encodings(face_recognition.load_image_file(id_path))[0]],
+                    face_recognition.face_encodings(face_recognition.load_image_file(selfie_path))[0]
+                )[0]) * 100, 2),
+                role='client',
+                statut='actif'
+            )
+
+            # Mot de passe temporaire
+            password_temp = "Temp123!"
+            nouveau_client.set_password(password_temp)
+
+            db.session.add(nouveau_client)
+            db.session.commit()
+
+            return render_template('creer_dossier_success.html',
+                                   client=nouveau_client,
+                                   message=message,
+                                   password_temp=password_temp)
+
+        except Exception as e:
+            return render_template('creer_dossier.html',
+                                   error=f"Erreur lors de la création: {str(e)}")
+
+    return render_template('creer_dossier.html')
+
 
 class Groupe(db.Model):
     __tablename__ = 'groupes'
@@ -416,13 +646,33 @@ def calculer_statistiques_utilisateur(user):
     })
 
     return stats
+
+
+# Ajoutez cette fonction utilitaire
+def save_base64_image(base64_string, output_path):
+    """Convertit et sauvegarde une image base64"""
+    try:
+        if ',' in base64_string:
+            base64_string = base64_string.split(',')[1]
+
+        image_data = base64.b64decode(base64_string)
+        with open(output_path, 'wb') as f:
+            f.write(image_data)
+        return True
+    except Exception as e:
+        print(f"Erreur sauvegarde image base64: {e}")
+        return False
+
 # ==================== CONFIGURATION USER LOADER ====================
+
+# @login_manager.user_loader
+# def load_user(user_id):
+#     return User.query.get(int(user_id))  # ✅ Plus simple !
+#
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))  # ✅ Plus simple !
-
-
+    return db.session.get(User, int(user_id))  # ← Version moderne au lieu de User.query.get()
 
 # @app.route("/")
 # def index():
@@ -438,6 +688,7 @@ def initialiser_donnees():
     """Initialise la base de données avec des données de test"""
     try:
         print("🗃️ Création des tables...")
+        db.drop_all()  # ⚠️ SUPPRIME les tables existantes
         db.create_all()
 
         print("👤 Création des comptes...")
@@ -520,36 +771,59 @@ def accueil():
     return render_template('accueil.html')
 
 
+
+# @app.route('/connexion', methods=['GET', 'POST'])
+# def connexion():
+#     if request.method == 'POST':
+#         identifiant = request.form.get('identifiant')
+#         mot_de_passe = request.form.get('password')
+#
+#         user = User.query.filter(
+#             (User.username == identifiant) | (User.email == identifiant)
+#         ).first()
+#
+#         if user and user.check_password(mot_de_passe):
+#             login_user(user)
+#             print(f"✅ Connexion réussie: {user.role}")
+#
+#             # 🔄 UTILISEZ LA NOUVELLE REDIRECTION UNIVERSELLE
+#             return redirect(url_for('dashboard_redirect'))
+#
+#         return render_template('connexion.html', erreur="Identifiant ou mot de passe incorrect")
+#
+#     return render_template('connexion.html')
+
+
 @app.route('/connexion', methods=['GET', 'POST'])
 def connexion():
     if request.method == 'POST':
         identifiant = request.form.get('identifiant')
         mot_de_passe = request.form.get('password')
-        print(f"🔐 Tentative de connexion: {identifiant}")
 
-        # ✅ RECHERCHE UNIFIÉE - Trouve tout le monde dans la même table User
         user = User.query.filter(
             (User.username == identifiant) | (User.email == identifiant)
         ).first()
 
-        # Vérifier le mot de passe
         if user and user.check_password(mot_de_passe):
-            login_user(user)
+            # ✅ VÉRIFICATION POUR LES EMPLOYÉS
+            if user.role in ['employe', 'superviseur'] and user.statut != 'actif':
+                return render_template('connexion.html',
+                                       erreur="Votre compte employé est en attente d'approbation administrative.")
 
-            # ✅ DÉTERMINER AUTOMATIQUEMENT L'INTERFACE (avec la classe unifiée)
-            if user.role == 'admin':
-                print("🎯 Redirection vers interface Admin")
-                return redirect(url_for('admin_dashboard'))
-            elif user.role == 'employe':
-                print("🎯 Redirection vers interface Employé")
-                return redirect(url_for('employe_dashboard'))
-            else:  # client
-                print("🎯 Redirection vers interface Client")
-                return redirect(url_for('client_dashboard'))
+            # ✅ LES CLIENTS PEUVENT TOUJOURS SE CONNECTER
+            if user.role == 'client' and user.statut != 'actif':
+                return render_template('connexion.html',
+                                       erreur="Votre compte client est en attente d'activation.")
+
+            login_user(user)
+            print(f"✅ Connexion réussie: {user.role} - Statut: {user.statut}")
+            return redirect(url_for('dashboard_redirect'))
 
         return render_template('connexion.html', erreur="Identifiant ou mot de passe incorrect")
 
     return render_template('connexion.html')
+
+
 
 @app.route('/deconnexion')
 def deconnexion():
@@ -731,11 +1005,41 @@ def calculer_echeancier(pret_id):
 
 # ==================== GESTION DES GROUPES DE SOLIDARITÉ ====================
 
+# @app.route('/groupes')
+# @login_required
+# def liste_groupes():
+#     groupes = Groupe.query.all()
+#     return render_template('liste_groupes.html', groupes=groupes)
+
+
 @app.route('/groupes')
 @login_required
 def liste_groupes():
+    """Liste tous les groupes - accessible aux conseillers"""
+    if current_user.role != 'employe' or not current_user.has_permission('conseiller'):
+        return redirect(url_for('employe_dashboard'))
+
     groupes = Groupe.query.all()
     return render_template('liste_groupes.html', groupes=groupes)
+
+
+@app.route('/admin/assigner-groupe/<int:employe_id>', methods=['GET', 'POST'])
+@login_required
+def assigner_groupe(employe_id):
+    """Assigner un groupe à un employé - Admin seulement"""
+    if current_user.role != 'admin':
+        return redirect(url_for('tableu_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+    groupes = Groupe.query.all()
+
+    if request.method == 'POST':
+        groupe_id = request.form.get('groupe_id')
+        employe.groupe_id = groupe_id if groupe_id else None
+        db.session.commit()
+        return redirect(url_for('gerer_employes'))
+
+    return render_template('assigner_groupe.html', employe=employe, groupes=groupes)
 
 
 @app.route('/groupe/<int:groupe_id>')
@@ -1111,9 +1415,11 @@ def calculer_statistiques_globales():
         taux_remboursement = (montant_total_rembourse / montant_prets_actifs) * 100
 
     # ✅ CORRECTION de la jointure problématique
-    clients_avec_prets_count = db.session.query(User).join(
-        Pret, User.id == Pret.client_id
-    ).filter(User.role == 'client').distinct(User.id).count()
+    clients_avec_prets_count = db.session.query(
+        db.func.count(db.func.distinct(User.id))
+    ).join(Pret, User.id == Pret.client_id).filter(
+        User.role == 'client'
+    ).scalar() or 0
 
     return {
         'clients': {
@@ -1247,30 +1553,40 @@ def debug_users():
 
     return jsonify(result)
 
+
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
-    # Vérifier que c'est bien un admin (sans hasattr)
+    # Vérifier que c'est bien un admin
     if getattr(current_user, 'role', None) != 'admin':
         return redirect(url_for('tableau_de_bord'))
-    return render_template('admin_dashboard.html')
 
-@app.route('/employe/dashboard')
-@login_required
-def employe_dashboard():
-    # Vérifier que c'est bien un employé (sans hasattr)
-    if getattr(current_user, 'role', None) != 'employe':
-        return redirect(url_for('tableau_de_bord'))
-    return render_template('employe_dashboard.html')
+    # Votre code pour le dashboard admin
+    stats = calculer_statistiques_globales()
+    return render_template('admin_dashboard.html', stats=stats)
+
+
+
 
 @app.route('/client/dashboard')
 @login_required
 def client_dashboard():
-    # Vérifier que c'est bien un client (sans hasattr)
-    if getattr(current_user, 'role', None):  # Si c'est un User, pas un Client
+    if current_user.role != 'client':
         return redirect(url_for('tableau_de_bord'))
-    return render_template('client_dashboard.html')
 
+    # Récupérer le groupe du client
+    groupe = None
+    if current_user.groupe_id:
+        groupe = Groupe.query.get(current_user.groupe_id)
+
+    # Vos statistiques existantes
+    stats = calculer_statistiques_utilisateur(current_user)
+
+    # Retourner le template avec toutes les variables nécessaires
+    return render_template('client_dashboard.html',
+                           user=current_user,
+                           stats=stats,
+                           groupe=groupe)  # ← Le groupe est maintenant disponible
 
 @app.route('/pret/<int:pret_id>/<action>')
 @login_required
@@ -1338,19 +1654,87 @@ def score_credit():
     """Page détaillée du score de crédit"""
     return render_template('score_credit.html')
 
-
-@app.route('/recommandations-pret')
-@login_required
-def recommandations_pret():
-    """Recommandations de prêt personnalisées"""
-    return render_template('recommandations_pret.html')
-
+# ==================== ROUTES GAMIFICATION ====================
 
 @app.route('/profil-gamification')
 @login_required
 def profil_gamification():
-    """Profil gamification détaillé"""
-    return render_template('profil_gamification.html')
+    """Page principale de gamification"""
+    return render_template('profil-gamification.html')
+
+@app.route('/defis')
+@login_required
+def defis():
+    """Page des défis"""
+    defis_list = [
+        {'nom': 'Premier prêt', 'description': 'Obtenez votre premier prêt', 'recompense': 100, 'termine': False},
+        {'nom': 'Remboursement ponctuel', 'description': '3 remboursements à temps', 'recompense': 50, 'termine': True, 'progression': '2/3'},
+        {'nom': 'Leader du groupe', 'description': 'Devenir coordinateur', 'recompense': 200, 'termine': False}
+    ]
+    return render_template('defis.html', defis=defis_list)
+
+@app.route('/badges')
+@login_required
+def badges():
+    """Page des badges"""
+    badges_list = [
+        {'nom': 'Bronze', 'icone': '🥉', 'description': 'Premier prêt obtenu', 'obtenu': True},
+        {'nom': 'Argent', 'icone': '🥈', 'description': '5 remboursements ponctuels', 'obtenu': False},
+        {'nom': 'Or', 'icone': '🥇', 'description': 'Score crédit > 750', 'obtenu': False}
+    ]
+    return render_template('badges.html', badges=badges_list)
+
+@app.route('/classement')
+@login_required
+def classement():
+    """Page du classement"""
+    classement_data = [
+        {'position': 1, 'nom': 'Marie Dupont', 'points': 850, 'niveau': 3},
+        {'position': 2, 'nom': 'Jean Martin', 'points': 720, 'niveau': 2},
+        {'position': 3, 'nom': current_user.prenom + ' ' + current_user.nom, 'points': 650, 'niveau': 1},
+        {'position': 4, 'nom': 'Sophie Laurent', 'points': 580, 'niveau': 1}
+    ]
+    return render_template('classement.html', classement=classement_data)
+
+@app.route('/recompenses')
+@login_required
+def recompenses():
+    """Page des récompenses"""
+    recompenses_list = [
+        {'nom': 'Réduction taux', 'description': '1% de réduction sur le prochain prêt', 'points': 300, 'disponible': True},
+        {'nom': 'Frais de dossier offerts', 'description': 'Frais de dossier gratuits', 'points': 500, 'disponible': False},
+        {'nom': 'Assurance gratuite', 'description': '3 mois d\'assurance offerte', 'points': 800, 'disponible': False}
+    ]
+    return render_template('recompenses.html', recompenses=recompenses_list)
+
+@app.route('/recommandations-pret')
+@login_required
+def recommandations_pret():
+    """Page des recommandations de prêt"""
+    return render_template('recommandations_pret.html')
+
+# ==================== API GAMIFICATION ====================
+
+@app.route('/api/gamification/points')
+@login_required
+def get_gamification_points():
+    """API pour récupérer les points de gamification"""
+    return jsonify({'points': 650, 'niveau': 1, 'progression': '50%'})
+
+@app.route('/api/gamification/complete-defi/<defi_id>')
+@login_required
+def complete_defi(defi_id):
+    """API pour compléter un défi"""
+    # Logique pour compléter un défi
+    return jsonify({'success': True, 'points_gagnes': 50})
+
+@app.route('/api/gamification/echanger-recompense/<recompense_id>')
+@login_required
+def echanger_recompense(recompense_id):
+    """API pour échanger une récompense"""
+    # Logique pour échanger des points contre une récompense
+    return jsonify({'success': True, 'message': 'Récompense échangée'})
+
 
 
 @app.route('/reconnaissance-faciale')
@@ -1370,23 +1754,7 @@ def analytics_personnel():
     # Vos données d'analytics ici
     stats = calculer_statistiques_globales()
     return render_template('analytics_personnel.html', stats=stats)
-
-# Routes gamification manquantes
-@app.route('/defis')
-@login_required
-def defis():
-    return render_template('defis.html')
-
-@app.route('/badges')
-@login_required
-def badges():
-    return render_template('badges.html')
-
-@app.route('/classement')
-@login_required
-def classement():
-    return render_template('classement.html')
-
+#
 
 @app.route('/previsions-remboursement')
 @login_required
@@ -1415,11 +1783,26 @@ def parametres():
     """Page des paramètres utilisateur"""
     return render_template('parametres.html')
 
+
 @app.route('/profil')
 @login_required
 def profil():
-    """Page de profil utilisateur"""
-    return render_template('profil.html', user=current_user)
+    """Page de profil utilisateur - Version simplifiée"""
+    # Calculs basiques sans dépendances complexes
+    prets_actifs = Pret.query.filter_by(client_id=current_user.id, statut='approuve').count() if hasattr(current_user,
+                                                                                                         'groupe_id') else 0
+
+    stats = {
+        'score_credit': 650,
+        'score_categorie': 'good',
+        'prets_actifs': prets_actifs,
+        'montant_actifs': 0,
+        'niveau': 1,
+        'points': 50,
+        'badge': 'Bronze'
+    }
+
+    return render_template('profil.html', user=current_user, stats=stats)
 # ==================== LANCEMENT ====================
 
 @app.route('/securite')
@@ -1433,15 +1816,29 @@ def test_mobile():
     return redirect(url_for('test_mobile_routes'))
 
 
-@app.route('/admin/gerer-employes')
+# Route pour la gestion des remboursements (caissier)
+@app.route('/employe/remboursements')
 @login_required
-def gerer_employes():
-    """Page de gestion des employés"""
-    if not current_user.est_admin:
+def employe_remboursements():
+    if not (current_user.role == 'employe' and current_user.has_permission(current_user, 'caissier')):
         return redirect(url_for('tableau_de_bord'))
+    return render_template('employe_remboursements.html')
 
-    employes = User.query.filter_by(role='employe').all()
-    return render_template('gerer_employes.html', employes=employes)
+# Route pour l'analyse des prêts (analyste crédit)
+@app.route('/employe/analyse-prets')
+@login_required
+def employe_analyse_prets():
+    if not (current_user.role == 'employe' and current_user.has_permission(current_user, 'analyste_credit')):
+        return redirect(url_for('tableau_de_bord'))
+    return render_template('employe_analyse_prets.html')
+
+# Route pour la gestion des clients (conseiller clientèle)
+@app.route('/employe/gestion-clients')
+@login_required
+def employe_gestion_clients():
+    if not (current_user.role == 'employe' and current_user.has_permission(current_user, 'conseiller')):
+        return redirect(url_for('tableau_de_bord'))
+    return render_template('employe_gestion_clients.html')
 
 
 @app.route('/admin/creer-employe', methods=['GET', 'POST'])
@@ -1495,6 +1892,982 @@ def mobile_dashboard():
 @app.route("/")
 def home():
     return {"message": "✅ API GMES Haiti en ligne et fonctionnelle"}
+
+@app.route('/debug-routes')
+def debug_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append(f"{rule.rule} -> {rule.endpoint}")
+    return "<br>".join(routes)
+
+@app.route('/list-routes')
+def list_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        if 'static' not in rule.rule:
+            routes.append(f"{rule.rule} -> {rule.endpoint}")
+    return "<br>".sorted(routes)
+
+
+@app.route('/client/test')
+@login_required
+def client_test():
+    """Route temporaire pour tester l'interface client"""
+    if current_user.role != 'client':
+        return f"⚠️ Accès refusé. Votre rôle: {current_user.role}"
+
+    return """
+    <h1>✅ Interface Client Fonctionnelle</h1>
+    <p>Bienvenue {}</p>
+    <p>Votre rôle: {}</p>
+    <a href="/client/dashboard">Accéder au tableau de bord complet</a>
+    """.format(current_user.nom_complet, current_user.role)
+
+
+@app.route('/admin/debug-stats')
+@login_required
+def debug_stats():
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    stats = calculer_statistiques_globales()
+
+    # Debug détaillé
+    debug_info = {
+        'stats_object': stats,
+        'clients_count': User.query.filter_by(role='client').count(),
+        'active_loans': Pret.query.filter_by(statut='approuve').count(),
+        'pending_loans': Pret.query.filter_by(statut='en_attente').count()
+    }
+
+    return jsonify(debug_info)
+
+
+@app.route('/admin/gerer-permissions/<int:employe_id>', methods=['GET', 'POST'])
+@login_required
+def gerer_permissions(employe_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+
+    if request.method == 'POST':
+        permissions = request.form.getlist('permissions')
+        employe.permissions = json.dumps(permissions)
+        db.session.commit()
+        return redirect(url_for('gerer_employes'))
+
+    # Permissions disponibles
+    all_permissions = {
+        'caissier': 'Caissier - Gestion des remboursements',
+        'analyste_credit': 'Analyste crédit - Analyse des prêts',
+        'conseiller': 'Conseiller clientèle - Gestion clients',
+        'gestionnaire_groupe': 'Gestionnaire de groupes',
+        'rapports': 'Génération de rapports'
+    }
+
+    current_permissions = json.loads(employe.permissions) if employe.permissions else []
+
+    return render_template('gerer_permissions.html',
+                           employe=employe,
+                           all_permissions=all_permissions,
+                           current_permissions=current_permissions)
+
+@app.template_filter('has_permission')
+def has_permission_filter(user, permission_name):
+    return current_user.has_permission(user, permission_name)
+
+
+@app.route('/debug/all-users')
+def debug_all_users():
+    """Voir tous les utilisateurs en base"""
+    users = User.query.all()
+    result = []
+    for user in users:
+        result.append({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role,
+            'nom': user.nom,
+            'prenom': user.prenom,
+            'has_password': bool(user.password_hash)
+        })
+    return jsonify(result)
+
+
+@app.route('/debug/create-employe-now')
+def create_employe_now():
+    """Créer un employé immédiatement"""
+    if User.query.filter_by(username='employe').first():
+        return "❌ Employé existe déjà"
+
+    employe = User(
+        username='employe',
+        email='employe@gmes.com',
+        role='employe',
+        nom='Martin',
+        prenom='Sophie',
+        telephone='+50912345678'
+    )
+    employe.set_password('employe123')  # Mot de passe simple
+
+    db.session.add(employe)
+    db.session.commit()
+
+    return """
+    ✅ Employé créé avec succès !
+    <br><br>
+    <strong>Identifiants de test :</strong>
+    <br>Identifiant: <strong>employe</strong>
+    <br>OU Email: <strong>employe@gmes.com</strong>  
+    <br>Mot de passe: <strong>employe123</strong>
+    <br><br>
+    <a href="/connexion" style="background: blue; color: white; padding: 10px; text-decoration: none;">
+    🚀 Se connecter maintenant
+    </a>
+    """
+
+@app.route('/admin/gerer-employes')
+@login_required
+def gerer_employes():
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    # Récupérer tous les employés et superviseurs
+    utilisateurs = User.query.filter(User.role.in_(['employe', 'superviseur'])).all()
+
+    # Calculer les statistiques
+    stats = {
+        'total': len(utilisateurs),
+        'en_attente': len([u for u in utilisateurs if u.statut == 'en_attente']),
+        'actifs': len([u for u in utilisateurs if u.statut == 'actif']),
+        'suspendus': len([u for u in utilisateurs if u.statut == 'suspendu']),
+        'employes': len([u for u in utilisateurs if u.role == 'employe']),
+        'superviseurs': len([u for u in utilisateurs if u.role == 'superviseur'])
+    }
+
+    return render_template('gerer_employes.html', utilisateurs=utilisateurs, stats=stats)
+
+# ✅ APPROUVER un employé
+@app.route('/admin/approver-employe/<int:employe_id>')
+@login_required
+def approver_employe(employe_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+
+    if employe.role != 'employe':
+        return redirect(url_for('gerer_employes'))
+
+    # Approuver l'employé
+    employe.statut = 'actif'
+    employe.approuve_par = current_user.id
+    employe.date_approbation = datetime.utcnow()
+
+    db.session.commit()
+
+    print(f"✅ Employé {employe.prenom} {employe.nom} approuvé par {current_user.prenom}")
+    return redirect(url_for('gerer_employes'))
+
+
+# ⏸️ SUSPENDRE un employé
+@app.route('/admin/suspendre-employe/<int:employe_id>')
+@login_required
+def suspendre_employe(employe_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+
+    if employe.role != 'employe':
+        return redirect(url_for('gerer_employes'))
+
+    # Suspendre l'employé
+    employe.statut = 'suspendu'
+    db.session.commit()
+
+    print(f"⏸️ Employé {employe.prenom} {employe.nom} suspendu par {current_user.prenom}")
+    return redirect(url_for('gerer_employes'))
+
+
+# 🔄 RÉACTIVER un employé
+@app.route('/admin/reactiver-employe/<int:employe_id>')
+@login_required
+def reactiver_employe(employe_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+
+    if employe.role != 'employe':
+        return redirect(url_for('gerer_employes'))
+
+    # Réactiver l'employé
+    employe.statut = 'actif'
+    db.session.commit()
+
+    print(f"🔄 Employé {employe.prenom} {employe.nom} réactivé par {current_user.prenom}")
+    return redirect(url_for('gerer_employes'))
+
+
+# ✏️ MODIFIER un employé
+@app.route('/admin/modifier-employe/<int:employe_id>', methods=['GET', 'POST'])
+@login_required
+def modifier_employe(employe_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+
+    if employe.role != 'employe':
+        return redirect(url_for('gerer_employes'))
+
+    fonctions_disponibles = {
+        'caissier': 'Caissier - Gestion des remboursements',
+        'analyste_credit': 'Analyste crédit - Analyse des prêts',
+        'conseiller': 'Conseiller clientèle - Gestion clients',
+        'gestionnaire_groupe': 'Gestionnaire de groupes',
+        'rapports': 'Génération de rapports'
+    }
+
+    if request.method == 'POST':
+        # Mettre à jour les informations
+        employe.username = request.form.get('username')
+        employe.email = request.form.get('email')
+        employe.nom = request.form.get('nom')
+        employe.prenom = request.form.get('prenom')
+        employe.telephone = request.form.get('telephone')
+        employe.fonction = request.form.get('fonction')
+        employe.statut = request.form.get('statut')
+
+        # Si mot de passe fourni, le mettre à jour
+        nouveau_password = request.form.get('password')
+        if nouveau_password:
+            employe.set_password(nouveau_password)
+
+        db.session.commit()
+        return redirect(url_for('gerer_employes'))
+
+    return render_template('modifier_employe.html',
+                           employe=employe,
+                           fonctions=fonctions_disponibles)
+
+
+# 🗑️ SUPPRIMER un employé
+@app.route('/admin/supprimer-employe/<int:employe_id>')
+@login_required
+def supprimer_employe(employe_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+
+    if employe.role != 'employe':
+        return redirect(url_for('gerer_employes'))
+
+    # Supprimer l'employé
+    db.session.delete(employe)
+    db.session.commit()
+
+    print(f"🗑️ Employé {employe.prenom} {employe.nom} supprimé par {current_user.prenom}")
+    return redirect(url_for('gerer_employes'))
+
+
+# 📊 GÉNÉRATION DE RAPPORTS
+@app.route('/employe/rapports')
+@login_required
+def rapports_dashboard():
+    if current_user.role != 'employe' or current_user.fonction != 'rapports':
+        return redirect(url_for('tableau_de_bord'))
+
+    # Statistiques pour les rapports
+    stats_rapports = {
+        'rapports_generes': 45,
+        'export_reussis': 38,
+        'rapports_urgents': 3
+    }
+
+    return render_template('rapports_dashboard.html', stats=stats_rapports)
+
+
+@app.route('/employe/caissier')
+@login_required
+def caissier_dashboard():
+    """Tableau de bord spécifique au caissier"""
+    if current_user.role != 'employe' or not current_user.has_permission('caissier'):
+        return redirect(url_for('employe_dashboard'))
+    # Remboursements du jour
+    aujourdhui = datetime.utcnow().date()
+    remboursements_du_jour = Remboursement.query.filter(
+        db.func.date(Remboursement.date_remboursement) == aujourdhui
+    ).all()
+    # Calculer les statistiques
+    montant_total = sum(r.montant for r in remboursements_du_jour)
+
+    stats = {
+        'remboursements_du_jour': len(remboursements_du_jour),
+        'montant_total': montant_total,
+        'remboursements_attente': Remboursement.query.filter_by(statut='en_attente').count(),
+        'taux_service': 95  # À calculer dynamiquement
+    }
+    # Remboursements en retard (simulation)
+    remboursements_retard = []
+    return render_template('caissier_dashboard.html',
+                           stats=stats,
+                           remboursements_du_jour=remboursements_du_jour,
+                           remboursements_retard=remboursements_retard)
+
+
+# Route Conseiller avec données
+@app.route('/employe/conseiller')
+@login_required
+def conseiller_dashboard():
+    if current_user.role != 'employe' or current_user.fonction != 'conseiller':
+        return redirect(url_for('tableau_de_bord'))
+
+    clients = User.query.filter_by(role='client').limit(6).all()
+
+    return render_template('conseiller_dashboard.html',
+                           clients=clients,
+                           total_clients=len(clients),
+                           dossiers_actifs=15,
+                           demandes_attente=3,
+                           rdv_aujourdhui=2)
+
+
+# Route Analyste avec données
+@app.route('/employe/analyste')
+@login_required
+def analyste_dashboard():
+    if current_user.role != 'employe' or current_user.fonction != 'analyste_credit':
+        return redirect(url_for('tableau_de_bord'))
+
+    prets_en_attente = Pret.query.filter_by(statut='en_attente').all()
+
+    return render_template('analyste_dashboard.html',
+                           prets_en_attente=prets_en_attente,
+                           prets_traites=24,
+                           taux_approbation=78.5,
+                           delai_moyen="4.2")
+
+
+# Route Gestionnaire avec données
+@app.route('/employe/gestionnaire')
+@login_required
+def gestionnaire_dashboard():
+    if current_user.role != 'employe' or current_user.fonction != 'gestionnaire':
+        return redirect(url_for('tableau_de_bord'))
+
+    groupes = Groupe.query.all()
+
+    return render_template('gestionnaire_dashboard.html',
+                           groupes=groupes,
+                           total_groupes=len(groupes),
+                           total_membres=User.query.filter_by(role='client').count(),
+                           performance_moyenne=85.2,
+                           nouveaux_membres=12)
+
+#
+
+# ✅ APPROUVER un employé/superviseur
+@app.route('/admin/approver-utilisateur/<int:user_id>')
+@login_required
+def approver_utilisateur(user_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    utilisateur = User.query.get_or_404(user_id)
+
+    if utilisateur.role not in ['employe', 'superviseur']:
+        return redirect(url_for('gerer_employes'))
+
+    # Approuver l'utilisateur
+    utilisateur.statut = 'actif'
+    utilisateur.approuve_par = current_user.id
+    utilisateur.date_approbation = datetime.utcnow()
+
+    db.session.commit()
+
+    print(f"✅ {utilisateur.role} {utilisateur.prenom} {utilisateur.nom} approuvé par {current_user.prenom}")
+    return redirect(url_for('gerer_employes'))
+
+
+# ⏸️ SUSPENDRE un utilisateur
+@app.route('/admin/suspendre-utilisateur/<int:user_id>')
+@login_required
+def suspendre_utilisateur(user_id):
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    utilisateur = User.query.get_or_404(user_id)
+
+    if utilisateur.role not in ['employe', 'superviseur']:
+        return redirect(url_for('gerer_employes'))
+
+    # Suspendre l'utilisateur
+    utilisateur.statut = 'suspendu'
+    db.session.commit()
+
+    print(f"⏸️ {utilisateur.role} {utilisateur.prenom} {utilisateur.nom} suspendu")
+    return redirect(url_for('gerer_employes'))
+
+
+
+
+# 👥 VOIR TOUS LES EMPLOYÉS
+@app.route('/superviseur/employes')
+@login_required
+def superviseur_tous_employes():
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    employes = User.query.filter_by(role='employe').all()
+    return render_template('superviseur_tous_employes.html', employes=employes)
+
+
+# 🏦 VOIR PAR FONCTION
+@app.route('/superviseur/fonction/<fonction>')
+@login_required
+def superviseur_voir_fonction(fonction):
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    employes = User.query.filter_by(role='employe', fonction=fonction).all()
+
+    # Libellé de la fonction
+    libelles_fonctions = {
+        'caissier': 'Caissiers',
+        'conseiller': 'Conseillers Clientèle',
+        'analyste_credit': 'Analystes Crédit',
+        'gestionnaire_groupe': 'Gestionnaires de Groupes',
+        'rapports': 'Générateurs de Rapports'
+    }
+
+    return render_template('superviseur_par_fonction.html',
+                           employes=employes,
+                           fonction=fonction,
+                           libelle_fonction=libelles_fonctions.get(fonction, fonction))
+
+
+# 👤 VOIR DÉTAILS EMPLOYÉ
+@app.route('/superviseur/employe/<int:employe_id>')
+@login_required
+def superviseur_voir_employe(employe_id):
+    """Page de détail d'un employé"""
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    employe = User.query.get_or_404(employe_id)
+
+    # Vérifier que c'est bien un employé
+    if employe.role != 'employe':
+        return redirect(url_for('superviseur_dashboard'))
+
+    # Calculer les statistiques
+    stats = calculer_stats_employe(employe)
+
+    return render_template('superviseur_voir_employe.html',
+                           employe=employe,
+                           stats=stats)
+
+# 📊 RAPPORTS PERFORMANCE
+@app.route('/superviseur/rapports')
+@login_required
+def superviseur_rapports():
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    # Données de performance pour le template superviseur_rapports.html
+    performances = {
+        'caissier': {'nombre': 5, 'employes_actifs': 4, 'performance_moyenne': 85, 'taux_activite': 92},
+        'conseiller': {'nombre': 8, 'employes_actifs': 7, 'performance_moyenne': 78, 'taux_activite': 88},
+        'analyste_credit': {'nombre': 3, 'employes_actifs': 3, 'performance_moyenne': 91, 'taux_activite': 95},
+        'gestionnaire_groupe': {'nombre': 4, 'employes_actifs': 4, 'performance_moyenne': 82, 'taux_activite': 90},
+        'rapports': {'nombre': 2, 'employes_actifs': 2, 'performance_moyenne': 88, 'taux_activite': 85}
+    }
+
+    return render_template('superviseur_rapports.html', performances=performances)
+
+
+@app.route('/superviseur/employes')
+@login_required
+def superviseur_employes():
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    employes = User.query.filter_by(role='employe').all()
+    return render_template('superviseur_employes.html', employes=employes)
+
+
+@app.route('/superviseur/dashboard')
+@login_required
+def superviseur_dashboard():
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    try:
+        # Statistiques globales employés
+        total_employes = User.query.filter_by(role='employe').count()
+        employes_actifs = User.query.filter_by(role='employe', statut='actif').count()
+        employes_attente = User.query.filter_by(role='employe', statut='en_attente').count()
+
+        # Compter par fonction - FILTRER les fonctions None
+        employes_par_fonction = db.session.query(
+            User.fonction,
+            db.func.count(User.id)
+        ).filter(
+            User.role == 'employe',
+            User.fonction.isnot(None),  # ← FILTRE IMPORTANT
+            User.fonction != ''         # ← FILTRE IMPORTANT
+        ).group_by(User.fonction).all()
+
+        # Tâches en retard
+        taches_retard = 2
+
+        return render_template('superviseur_dashboard.html',
+                               total_employes=total_employes,
+                               employes_actifs=employes_actifs,
+                               employes_attente=employes_attente,
+                               employes_par_fonction=employes_par_fonction,
+                               taches_retard=taches_retard)
+
+    except Exception as e:
+        print(f"❌ Erreur superviseur dashboard: {e}")
+        return render_template('superviseur_dashboard.html',
+                               total_employes=0,
+                               employes_actifs=0,
+                               employes_attente=0,
+                               employes_par_fonction=[],
+                               taches_retard=0)
+
+
+@app.route('/admin/ajouter-employe', methods=['GET', 'POST'])
+@login_required
+def ajouter_employe():
+    if current_user.role != 'admin':
+        return redirect(url_for('tableau_de_bord'))
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        nom = request.form.get('nom')
+        prenom = request.form.get('prenom')
+        telephone = request.form.get('telephone')
+        password = request.form.get('password')
+        role = request.form.get('role')  # employe ou superviseur
+        fonction = request.form.get('fonction')
+
+        # ⚠️ TOUJOURS en attente par défaut
+        statut = 'en_attente'
+
+        # Vérifier si l'utilisateur existe déjà
+        if User.query.filter_by(username=username).first():
+            return render_template('ajouter_employe.html',
+                                   error="Ce nom d'utilisateur existe déjà")
+
+        if User.query.filter_by(email=email).first():
+            return render_template('ajouter_employe.html',
+                                   error="Cet email existe déjà")
+
+        # Créer le nouvel utilisateur
+        nouvel_utilisateur = User(
+            username=username,
+            email=email,
+            nom=nom,
+            prenom=prenom,
+            telephone=telephone,
+            role=role,
+            fonction=fonction,
+            statut=statut  # ⚠️ TOUJOURS en attente
+        )
+        nouvel_utilisateur.set_password(password)
+
+        db.session.add(nouvel_utilisateur)
+        db.session.commit()
+
+        # 🔔 Notification pour l'admin
+        print(f"✅ {role.capitalize()} {prenom} {nom} créé en attente d'approbation")
+
+        return redirect(url_for('gerer_employes'))
+
+    return render_template('ajouter_employe.html')
+
+
+# 👥 VOIR TOUS LES EMPLOYÉS (version superviseur)
+
+
+# 📊 RAPPORTS PERFORMANCE
+
+# 📝 JOURNAL DES ACTIVITÉS
+@app.route('/superviseur/activites')
+@login_required
+def superviseur_activites():
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    return "<h1>📝 Journal des Activités - En construction</h1><p>Cette fonctionnalité sera disponible prochainement.</p>"
+
+
+@app.route('/superviseur/init-fonctions')
+@login_required
+def init_fonctions():
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    try:
+        employes = User.query.filter_by(role='employe').all()
+        fonctions_disponibles = ['caissier', 'conseiller', 'analyste_credit', 'gestionnaire_groupe', 'rapports']
+
+        for i, employe in enumerate(employes):
+            if not employe.fonction:
+                # Assigner une fonction cycliquement
+                fonction = fonctions_disponibles[i % len(fonctions_disponibles)]
+                employe.fonction = fonction
+                print(f"✅ {employe.prenom} {employe.nom} -> {fonction}")
+
+        db.session.commit()
+        return "✅ Fonctions initialisées avec succès!"
+
+    except Exception as e:
+        db.session.rollback()
+        return f"❌ Erreur: {e}"
+
+
+@app.route('/superviseur/debug-fonctions')
+@login_required
+def debug_fonctions():
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+
+    # Vérifier tous les employés et leurs fonctions
+    employes = User.query.filter_by(role='employe').all()
+
+    result = "<h1>Debug Fonctions Employés</h1>"
+    for emp in employes:
+        result += f"<p>{emp.prenom} {emp.nom} - Fonction: '{emp.fonction}' - Statut: {emp.statut}</p>"
+
+    # Vérifier le regroupement par fonction
+    fonctions = db.session.query(
+        User.fonction,
+        db.func.count(User.id)
+    ).filter_by(role='employe').group_by(User.fonction).all()
+
+    result += "<h2>Groupement par fonction:</h2>"
+    for fonction, count in fonctions:
+        result += f"<p>Fonction '{fonction}': {count} employé(s)</p>"
+
+    return result
+
+@app.route('/superviseur/')
+@login_required
+def superviseur_index():
+    """Redirection vers le dashboard superviseur"""
+    if current_user.role != 'superviseur':
+        return redirect(url_for('tableau_de_bord'))
+    return redirect(url_for('superviseur_dashboard'))
+
+
+# ==================== ROUTES MANQUANTES ====================
+
+@app.route('/api/notifications/count')
+@login_required
+def api_notifications_count():
+    """API pour compter les notifications non lues"""
+    try:
+        count = Notification.query.filter_by(
+            utilisateur_id=current_user.id,
+            lue=False
+        ).count()
+        return jsonify({'count': count})
+    except Exception as e:
+        print(f"Erreur notifications count: {e}")
+        return jsonify({'count': 0})
+
+
+@app.route('/init-fonctions-employes')
+def init_fonctions_employes():
+    """Initialiser les fonctions des employés existants"""
+    try:
+        employes = User.query.filter_by(role='employe').all()
+        fonctions = ['caissier', 'conseiller', 'analyste_credit', 'gestionnaire_groupe', 'rapports']
+
+        results = []
+        for i, employe in enumerate(employes):
+            if not employe.fonction:
+                employe.fonction = fonctions[i % len(fonctions)]
+                results.append(f"✅ {employe.prenom} {employe.nom} -> {employe.fonction}")
+
+        db.session.commit()
+
+        html_response = "<h1>Fonctions employés initialisées!</h1>"
+        for result in results:
+            html_response += f"<p>{result}</p>"
+
+        html_response += "<br><a href='/superviseur/dashboard'>Aller au dashboard superviseur</a>"
+        return html_response
+
+    except Exception as e:
+        db.session.rollback()
+        return f"❌ Erreur: {str(e)}"
+
+
+@app.route('/debug/employes-fonctions')
+def debug_employes_fonctions():
+    """Debug des fonctions des employés"""
+    employes = User.query.filter_by(role='employe').all()
+    result = "<h1>Employés et leurs fonctions</h1>"
+
+    if not employes:
+        result += "<p>Aucun employé trouvé</p>"
+    else:
+        for emp in employes:
+            result += f"""
+            <div style="border: 1px solid #ccc; padding: 10px; margin: 5px;">
+                <strong>{emp.prenom} {emp.nom}</strong><br>
+                Email: {emp.email}<br>
+                Fonction: <span style="color: {'green' if emp.fonction else 'red'}">
+                    {emp.fonction if emp.fonction else 'NON DÉFINIE'}
+                </span><br>
+                Statut: {emp.statut}
+            </div>
+            """
+
+    result += "<br><a href='/init-fonctions-employes'>Initialiser les fonctions</a>"
+    return result
+
+
+@app.route('/create-superviseur-test')
+def create_superviseur_test():
+    """Créer un compte superviseur de test"""
+    if User.query.filter_by(username='superviseur').first():
+        return """
+        <h1>Superviseur existe déjà!</h1>
+        <p>Identifiant: <strong>superviseur</strong></p>
+        <p>Mot de passe: <strong>superviseur123</strong></p>
+        <br>
+        <a href="/connexion">Se connecter</a>
+        """
+
+    superviseur = User(
+        username='superviseur',
+        email='superviseur@gmes.com',
+        role='superviseur',
+        nom='Superviseur',
+        prenom='Test',
+        telephone='+50900000001',
+        fonction='superviseur',
+        statut='actif'
+    )
+    superviseur.set_password('superviseur123')
+
+    db.session.add(superviseur)
+    db.session.commit()
+
+    return """
+    <h1>✅ Superviseur créé !</h1>
+    <p>Identifiant: <strong>superviseur</strong></p>
+    <p>Mot de passe: <strong>superviseur123</strong></p>
+    <p>Email: <strong>superviseur@gmes.com</strong></p>
+    <br>
+    <a href="/connexion" style="background: blue; color: white; padding: 10px; text-decoration: none;">
+    🚀 Se connecter maintenant
+    </a>
+    """
+
+
+def calculer_stats_employe(employe):
+    """Calcule les statistiques d'un employé"""
+    stats = {
+        'performance': 85,  # Valeur par défaut
+        'taches_terminees': 0,
+        'taches_en_cours': 0,
+        'satisfaction_client': 4.2,
+        'activite_recente': 'Élevée'
+    }
+
+    # Selon la fonction de l'employé, calculer des stats spécifiques
+    if employe.fonction == 'caissier':
+        stats['taches_terminees'] = Remboursement.query.filter(
+            db.func.date(Remboursement.date_remboursement) == datetime.utcnow().date()
+        ).count()
+        stats['taches_en_cours'] = 3
+        stats['performance'] = min(100, stats['taches_terminees'] * 10 + 50)
+
+    elif employe.fonction == 'conseiller':
+        stats['taches_terminees'] = User.query.filter_by(role='client').count()
+        stats['taches_en_cours'] = 5
+        stats['performance'] = 78
+
+    elif employe.fonction == 'analyste_credit':
+        stats['taches_terminees'] = Pret.query.filter_by(statut='approuve').count()
+        stats['taches_en_cours'] = Pret.query.filter_by(statut='en_attente').count()
+        stats['performance'] = 91
+
+    elif employe.fonction == 'gestionnaire_groupe':
+        stats['taches_terminees'] = Groupe.query.count()
+        stats['taches_en_cours'] = 2
+        stats['performance'] = 82
+
+    elif employe.fonction == 'rapports':
+        stats['taches_terminees'] = 15
+        stats['taches_en_cours'] = 3
+        stats['performance'] = 88
+
+    return stats
+
+
+# def has_permission(user, permission_name):
+#     """Vérifie si un employé a une permission spécifique"""
+#     if not user:
+#         return False
+#
+#     if user.role == 'admin':
+#         return True
+#     elif user.role == 'employe':
+#         if user.permissions:
+#             try:
+#                 permissions_list = json.loads(user.permissions)
+#                 return permission_name in permissions_list
+#             except:
+#                 return False
+#         return False
+#     elif user.role == 'superviseur':
+#         # Les superviseurs ont accès à tout
+#         return True
+#     return False
+
+# def has_permission(user, permission_name):
+#     """Vérifie si un utilisateur a une permission spécifique"""
+#     if not user:
+#         return False
+#
+#     # Admin a accès à tout
+#     if user.role == 'admin':
+#         return True
+#
+#     # Superviseur a accès à tous les employés et leur travail
+#     elif user.role == 'superviseur':
+#         # Les superviseurs peuvent gérer tous les employés
+#         if permission_name in ['caissier', 'conseiller', 'analyste_credit', 'gestionnaire_groupe', 'rapports']:
+#             return True
+#         # Mais pas accéder aux fonctions admin
+#         elif permission_name in ['gerer_superviseurs', 'gerer_admins']:
+#             return False
+#         return True
+#
+#     # Employé a accès seulement à ses permissions spécifiques
+#     elif user.role == 'employe':
+#         if user.permissions:
+#             try:
+#                 permissions_list = json.loads(user.permissions)
+#                 return permission_name in permissions_list
+#             except:
+#                 return False
+#         return False
+#
+#     # Client n'a pas de permissions spéciales
+#     return False
+#
+
+
+@app.route('/employe/dashboard')
+@login_required
+def employe_dashboard():
+    if current_user.role != 'employe':
+        return redirect(url_for('tableau_de_bord'))
+
+    # Récupérer les permissions de l'employé
+    permissions = []
+    if current_user.permissions:
+        try:
+            permissions = json.loads(current_user.permissions)
+        except:
+            permissions = []
+
+    # ✅ CORRECTION : Utiliser la FONCTION has_permission()
+    stats = {}
+
+    if current_user.has_permission('caissier'):
+        stats['remboursements_du_jour'] = Remboursement.query.filter(
+            db.func.date(Remboursement.date_remboursement) == datetime.utcnow().date()
+        ).count()
+
+    if current_user.has_permission(current_user, 'analyste_credit'):
+        stats['prets_en_attente'] = Pret.query.filter_by(statut='en_attente').count()
+
+    # Statistiques communes
+    stats.update({
+        'clients_assignes': User.query.filter_by(role='client').count() if current_user.has_permission('conseiller') else 0,
+        'groupes_geres': Groupe.query.count() if current_user.has_permission('gestionnaire_groupe') else 0,
+        'rapports_generes': 12 if current_user.has_permission('rapports') else 0
+    })
+
+    return render_template('employe_dashboard.html',
+                           permissions=permissions,
+                           stats=stats)
+
+
+@app.route('/dashboard')
+@login_required
+def dashboard_redirect():
+    """Redirige chaque utilisateur vers son dashboard approprié"""
+    if current_user.role == 'admin':
+        return redirect(url_for('admin_dashboard'))
+    elif current_user.role == 'superviseur':
+        return redirect(url_for('superviseur_dashboard'))
+    elif current_user.role == 'employe':
+        # ✅ CORRECTION : Enlever le premier current_user
+        if current_user.has_permission('caissier'):
+            return redirect(url_for('caissier_dashboard'))
+        elif current_user.has_permission('conseiller'):
+            return redirect(url_for('conseiller_dashboard'))
+        elif current_user.has_permission('analyste_credit'):
+            return redirect(url_for('analyste_dashboard'))
+        elif current_user.has_permission('gestionnaire_groupe'):
+            return redirect(url_for('gestionnaire_dashboard'))
+        elif current_user.has_permission('rapports'):
+            return redirect(url_for('rapports_dashboard'))
+        else:
+            return redirect(url_for('employe_dashboard'))
+    elif current_user.role == 'client':
+        return redirect(url_for('client_dashboard'))
+    else:
+        return redirect(url_for('tableau_de_bord'))
+
+@app.route('/activate-all-employes')
+def activate_all_employes():
+    """Activer tous les employés en attente"""
+    if current_user.role != 'admin' and current_user.role != 'superviseur':
+        return "Accès non autorisé"
+
+    employes = User.query.filter_by(role='employe', statut='en_attente').all()
+
+    for employe in employes:
+        employe.statut = 'actif'
+        employe.approuve_par = current_user.id
+        employe.date_approbation = datetime.utcnow()
+        print(f"✅ {employe.prenom} {employe.nom} activé")
+
+    db.session.commit()
+
+    return f"✅ {len(employes)} employé(s) activé(s)!"
+
+
+@app.route('/mes-groupes')
+@login_required
+def mes_groupes():
+    """Voir mon groupe - Pour employés seulement"""
+    if current_user.role != 'employe':
+        return redirect(url_for('tableau_de_bord'))
+
+    # Si l'employé a un groupe_id, montrer seulement son groupe
+    if current_user.groupe_id:
+        groupe = Groupe.query.get(current_user.groupe_id)
+        return render_template('mon_groupe.html', groupe=groupe)
+    else:
+        return render_template('mon_groupe.html', groupe=None)
 
 
 if __name__ == '__main__':

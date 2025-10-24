@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Caissier - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #28a745; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.25rem; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: black; }
+        .table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .table th, .table td { padding: 0.75rem; border: 1px solid #ddd; text-align: left; }
+        .table th { background: #f8f9fa; }
+        .badge { padding: 0.25rem 0.5rem; border-radius: 15px; font-size: 0.8rem; }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏦 Tableau de Bord Caissier</h1>
+        <p>Gestion des remboursements et transactions</p>
+    </div>
+
+    <div class="container">
+        <!-- Statistiques du Jour -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>💰 Remboursements Aujourd'hui</h3>
+                <p style="font-size: 2rem; color: #28a745;">{{ stats.remboursements_du_jour }}</p>
+                <small>Transactions du jour</small>
+            </div>
+            <div class="stat-card">
+                <h3>📊 Montant Total</h3>
+                <p style="font-size: 2rem; color: #17a2b8;">{{ stats.montant_total|default(0) }} €</p>
+                <small>Encaisse du jour</small>
+            </div>
+            <div class="stat-card">
+                <h3>⏳ En Attente</h3>
+                <p style="font-size: 2rem; color: #ffc107;">{{ stats.remboursements_attente }}</p>
+                <small>Remboursements à traiter</small>
+            </div>
+            <div class="stat-card">
+                <h3>✅ Taux de Service</h3>
+                <p style="font-size: 2rem; color: #6f42c1;">{{ stats.taux_service|default(95) }}%</p>
+                <small>Efficacité du jour</small>
+            </div>
+        </div>
+
+        <!-- Remboursements du Jour -->
+        <div class="card">
+            <h2>📋 Remboursements du Jour</h2>
+            <div style="margin-bottom: 1rem;">
+                <a href="{{ url_for('nouveau_remboursement') }}" class="btn btn-success">➕ Nouveau Remboursement</a>
+                <a href="#" class="btn btn-warning">📊 Rapport Journalier</a>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Prêt</th>
+                        <th>Montant</th>
+                        <th>Méthode</th>
+                        <th>Référence</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for remb in remboursements_du_jour %}
+                    <tr>
+                        <td>
+                            <strong>{{ remb.client.prenom }} {{ remb.client.nom }}</strong><br>
+                            <small>{{ remb.client.telephone }}</small>
+                        </td>
+                        <td>{{ remb.pret.motif|default('N/A') }}</td>
+                        <td>{{ remb.montant }} €</td>
+                        <td>
+                            <span class="badge
+                                {% if remb.type_paiement == 'especes' %}badge-warning
+                                {% elif remb.type_paiement == 'virement' %}badge-success
+                                {% else %}badge-primary{% endif %}">
+                                {{ remb.type_paiement|upper }}
+                            </span>
+                        </td>
+                        <td><code>{{ remb.reference|default('N/A') }}</code></td>
+                        <td>
+                            <span class="badge
+                                {% if remb.statut == 'paye' %}badge-success
+                                {% elif remb.statut == 'en_attente' %}badge-warning
+                                {% else %}badge-danger{% endif %}">
+                                {{ remb.statut|upper }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="#" class="btn">👁️ Voir</a>
+                            <a href="#" class="btn btn-success">🧾 Reçu</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem;">
+                            <p>Aucun remboursement aujourd'hui</p>
+                            <a href="{{ url_for('nouveau_remboursement') }}" class="btn btn-success">
+                                ➕ Enregistrer le premier remboursement
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Remboursements en Retard -->
+        <div class="card">
+            <h2>⚠️ Remboursements en Retard</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Prêt</th>
+                        <th>Montant</th>
+                        <th>Jours Retard</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for retard in remboursements_retard %}
+                    <tr>
+                        <td>{{ retard.client.prenom }} {{ retard.client.nom }}</td>
+                        <td>{{ retard.pret.motif|default('N/A') }}</td>
+                        <td>{{ retard.montant }} €</td>
+                        <td>
+                            <span class="badge badge-danger">{{ retard.jours_retard }} jours</span>
+                        </td>
+                        <td>
+                            <a href="#" class="btn btn-warning">📞 Rappeler</a>
+                            <a href="#" class="btn">📧 Notifier</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 1rem;">
+                            ✅ Aucun remboursement en retard
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Actions Rapides -->
+        <div class="card">
+            <h2>⚡ Actions Rapides</h2>
+            <div>
+                <a href="{{ url_for('nouveau_remboursement') }}" class="btn btn-success">💰 Nouveau Remboursement</a>
+                <a href="#" class="btn">📊 Rapport Journalier</a>
+                <a href="#" class="btn">🧾 Imprimer Reçus</a>
+                <a href="#" class="btn btn-warning">💸 Fermeture Caisse</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

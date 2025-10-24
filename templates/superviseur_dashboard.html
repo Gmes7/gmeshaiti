@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Superviseur - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #6f42c1; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .fonctions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .fonction-card { background: #f8f9fa; padding: 1.5rem; border-radius: 10px; border-left: 4px solid; text-decoration: none; color: inherit; }
+        .caissier { border-left-color: #28a745; }
+        .conseiller { border-left-color: #17a2b8; }
+        .analyste_credit { border-left-color: #ffc107; }
+        .gestionnaire_groupe { border-left-color: #dc3545; }
+        .rapports { border-left-color: #6f42c1; }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.25rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Dashboard Superviseur - GMES</h1>
+        <p>Gestion des équipes et performance</p>
+    </div>
+
+    <div class="container">
+        <!-- Statistiques Globales -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>👥 Total Employés</h3>
+                <p style="font-size: 2rem; color: #6f42c1;">{{ total_employes }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>✅ Actifs</h3>
+                <p style="font-size: 2rem; color: #28a745;">{{ employes_actifs }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>⏳ En Attente</h3>
+                <p style="font-size: 2rem; color: #ffc107;">{{ employes_attente }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>⚠️ Tâches Retard</h3>
+                <p style="font-size: 2rem; color: #dc3545;">{{ taches_retard }}</p>
+            </div>
+        </div>
+
+        <!-- Employés par Fonction -->
+        <div class="card">
+            <h2>📊 Employés par Fonction</h2>
+            <div class="fonctions-grid">
+                {% for fonction, count in employes_par_fonction %}
+                <a href="{{ url_for('superviseur_voir_fonction', fonction=fonction) }}"
+                   class="fonction-card {{ fonction }}">
+                    <h3>
+                        {% if fonction == 'caissier' %}🏦 Caissiers
+                        {% elif fonction == 'conseiller' %}👥 Conseillers
+                        {% elif fonction == 'analyste_credit' %}📊 Analystes Crédit
+                        {% elif fonction == 'gestionnaire_groupe' %}👥 Gestionnaires Groupes
+                        {% elif fonction == 'rapports' %}📈 Rapports
+                        {% else %}{{ fonction }}{% endif %}
+                    </h3>
+                    <p style="font-size: 1.5rem; margin: 0.5rem 0;">{{ count }} employé(s)</p>
+                    <small>Cliquer pour voir les détails</small>
+                </a>
+                {% endfor %}
+
+                <!-- Fonctions sans employés -->
+                {% set toutes_fonctions = ['caissier', 'conseiller', 'analyste_credit', 'gestionnaire_groupe', 'rapports'] %}
+                {% set fonctions_avec_employes = employes_par_fonction|map(attribute=0)|list %}
+
+                {% for fonction in toutes_fonctions %}
+                    {% if fonction not in fonctions_avec_employes %}
+                    <a href="{{ url_for('superviseur_voir_fonction', fonction=fonction) }}"
+                       class="fonction-card {{ fonction }}" style="opacity: 0.6;">
+                        <h3>
+                            {% if fonction == 'caissier' %}🏦 Caissiers
+                            {% elif fonction == 'conseiller' %}👥 Conseillers
+                            {% elif fonction == 'analyste_credit' %}📊 Analystes Crédit
+                            {% elif fonction == 'gestionnaire_groupe' %}👥 Gestionnaires Groupes
+                            {% elif fonction == 'rapports' %}📈 Rapports
+                            {% else %}{{ fonction }}{% endif %}
+                        </h3>
+                        <p style="font-size: 1.5rem; margin: 0.5rem 0;">0 employé(s)</p>
+                        <small>Aucun employé dans cette fonction</small>
+                    </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Actions Rapides -->
+        <div class="card">
+            <h2>⚡ Actions Rapides</h2>
+            <a href="{{ url_for('superviseur_rapports') }}" class="btn">📊 Voir Rapports Performance</a>
+            <a href="{{ url_for('gerer_employes') }}" class="btn">👥 Gérer Employés</a>
+            <a href="{{ url_for('superviseur_employes') }}" class="btn">📋 Liste Complète</a>
+        </div>
+
+        <!-- Alertes -->
+        {% if employes_attente > 0 %}
+        <div class="card" style="border-left: 4px solid #ffc107;">
+            <h3>⏳ Attention</h3>
+            <p>Vous avez <strong>{{ employes_attente }}</strong> employé(s) en attente d'approbation.</p>
+            <a href="{{ url_for('gerer_employes') }}" class="btn">Gérer les approbations</a>
+        </div>
+        {% endif %}
+
+        {% if taches_retard > 0 %}
+        <div class="card" style="border-left: 4px solid #dc3545;">
+            <h3>⚠️ Tâches en Retard</h3>
+            <p>Vous avez <strong>{{ taches_retard }}</strong> tâche(s) nécessitant votre attention.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

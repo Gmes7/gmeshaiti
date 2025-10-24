@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails Employé - Superviseur GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #6f42c1; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        .btn-back { background: #6c757d; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 1rem 0; }
+        .stat-item { text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 5px; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        .table th, .table td { padding: 1rem; text-align: left; border-bottom: 1px solid #ddd; }
+        .badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; }
+        .badge-success { background: #28a745; color: white; }
+        .badge-warning { background: #ffc107; color: black; }
+        .badge-danger { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👤 Détails Employé - Superviseur</h1>
+        <a href="{{ url_for('superviseur_dashboard') }}" class="btn btn-back" style="color: white;">← Retour</a>
+    </div>
+
+    <div class="container">
+        <!-- Informations Employé -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <h2>{{ employe.prenom }} {{ employe.nom }}</h2>
+                    <p><strong>Fonction:</strong>
+                        {% if employe.fonction == 'caissier' %}🏦 Caissier
+                        {% elif employe.fonction == 'conseiller' %}👥 Conseiller
+                        {% elif employe.fonction == 'analyste_credit' %}📊 Analyste Crédit
+                        {% elif employe.fonction == 'gestionnaire_groupe' %}🎯 Gestionnaire
+                        {% elif employe.fonction == 'rapports' %}📈 Rapports
+                        {% else %}{{ employe.fonction }}{% endif %}
+                    </p>
+                    <p><strong>Email:</strong> {{ employe.email }}</p>
+                    <p><strong>Téléphone:</strong> {{ employe.telephone }}</p>
+                    <p><strong>Statut:</strong>
+                        <span class="badge {% if employe.statut == 'actif' %}badge-success{% else %}badge-warning{% endif %}">
+                            {{ employe.statut }}
+                        </span>
+                    </p>
+                </div>
+                <div style="text-align: right;">
+                    <p><strong>Date d'embauche:</strong> {{ employe.date_creation.strftime('%d/%m/%Y') }}</p>
+                    <p><strong>Dernière activité:</strong> Aujourd'hui 10:30</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques Performance -->
+        <div class="card">
+            <h3>📊 Performance</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <strong>Jours Travail</strong>
+                    <div style="font-size: 1.5rem; font-weight: bold;">{{ stats.jours_travail }}</div>
+                </div>
+                <div class="stat-item">
+                    <strong>Productivité</strong>
+                    <div style="font-size: 1.5rem; font-weight: bold;">{{ stats.taux_productivite }}%</div>
+                </div>
+                <div class="stat-item">
+                    <strong>Tâches Terminées</strong>
+                    <div style="font-size: 1.5rem; font-weight: bold;">{{ stats.taches_terminees }}</div>
+                </div>
+                <div class="stat-item">
+                    <strong>Satisfaction Client</strong>
+                    <div style="font-size: 1.5rem; font-weight: bold;">{{ stats.satisfaction_client }}/5</div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; padding: 1rem; background: #e7f3ff; border-radius: 5px;">
+                <strong>Évaluation:</strong> {{ stats.evaluation }}
+            </div>
+        </div>
+
+        <!-- Activités Récentes -->
+        <div class="card">
+            <h3>📝 Activités Récentes</h3>
+            {% if activites %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activite in activites %}
+                    <tr>
+                        <td>{{ activite.date_remboursement.strftime('%d/%m/%Y %H:%M') if activite.date_remboursement else 'N/A' }}</td>
+                        <td>
+                            {% if employe.fonction == 'caissier' %}💳 Remboursement
+                            {% elif employe.fonction == 'conseiller' %}📋 Demande Prêt
+                            {% else %}📝 Activité{% endif %}
+                        </td>
+                        <td>
+                            {% if employe.fonction == 'caissier' %}
+                                Remboursement de {{ activite.montant }} €
+                            {% elif employe.fonction == 'conseiller' %}
+                                Demande prêt {{ activite.montant }} €
+                            {% else %}
+                                Activité professionnelle
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-success">Terminé</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>Aucune activité récente trouvée.</p>
+            {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <h3>⚙️ Actions</h3>
+            <a href="#" class="btn">📞 Contacter</a>
+            <a href="#" class="btn" style="background: #28a745;">📊 Rapport Performance</a>
+            <a href="#" class="btn" style="background: #ffc107; color: black;">✏️ Modifier</a>
+        </div>
+    </div>
+</body>
+</html>

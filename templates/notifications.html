@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>🔔 Mes Notifications</h2>
+
+    <div class="card">
+        <div class="card-body">
+            {% if notifications %}
+                {% for notification in notifications %}
+                <div class="alert alert-{{ 'info' if not notification.lue else 'secondary' }}">
+                    <h5>{{ notification.titre }}</h5>
+                    <p>{{ notification.message }}</p>
+                    <small>{{ notification.date_creation.strftime('%d/%m/%Y %H:%M') }}</small>
+                    {% if not notification.lue %}
+                    <a href="{{ url_for('mark_notification_read', notification_id=notification.id) }}" class="btn btn-sm btn-primary float-end">Marquer comme lu</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">Aucune notification</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

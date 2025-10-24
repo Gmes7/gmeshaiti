@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>🎁 Mes Récompenses</h2>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="alert alert-info">
+                <h5>⭐ 650 points disponibles</h5>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-success">
+                        <div class="card-body text-center">
+                            <h1>💰</h1>
+                            <h5>Réduction de taux</h5>
+                            <p>1% de réduction sur votre prochain prêt</p>
+                            <div class="mb-3">
+                                <span class="badge bg-warning">300 points</span>
+                            </div>
+                            <button class="btn btn-success">Échanger</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-secondary">
+                        <div class="card-body text-center">
+                            <h1>📄</h1>
+                            <h5>Frais de dossier offerts</h5>
+                            <p>Frais de dossier gratuits pour votre prochain prêt</p>
+                            <div class="mb-3">
+                                <span class="badge bg-warning">500 points</span>
+                            </div>
+                            <button class="btn btn-secondary" disabled>Points insuffisants</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-secondary">
+                        <div class="card-body text-center">
+                            <h1>🛡️</h1>
+                            <h5>Assurance gratuite</h5>
+                            <p>3 mois d'assurance prêt offerte</p>
+                            <div class="mb-3">
+                                <span class="badge bg-warning">800 points</span>
+                            </div>
+                            <button class="btn btn-secondary" disabled>Points insuffisants</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-secondary">
+                        <div class="card-body text-center">
+                            <h1>🎯</h1>
+                            <h5>Consultation financière</h5>
+                            <p>Session avec un conseiller financier</p>
+                            <div class="mb-3">
+                                <span class="badge bg-warning">1000 points</span>
+                            </div>
+                            <button class="btn btn-secondary" disabled>Points insuffisants</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="/profil-gamification" class="btn btn-primary">← Retour à la gamification</a>
+    </div>
+</div>
+{% endblock %}

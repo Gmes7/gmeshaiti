@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau Dossier Client - GMES</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        .form-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .photo-upload {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .photo-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 10px auto;
+            display: none;
+        }
+        .calcul-capacite {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .btn-primary {
+            background: #2c5aa0;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary:hover {
+            background: #1e3d6f;
+        }
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>📁 Nouveau Dossier Client</h1>
+
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" id="dossierForm">
+            <!-- Section Informations Personnelles -->
+            <div class="form-section">
+                <h2>👤 Informations Personnelles</h2>
+
+                <div class="form-group">
+                    <label for="nom">Nom *</label>
+                    <input type="text" id="nom" name="nom" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="prenom">Prénom *</label>
+                    <input type="text" id="prenom" name="prenom" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="telephone">Téléphone *</label>
+                    <input type="tel" id="telephone" name="telephone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cin">Numéro CIN *</label>
+                    <input type="text" id="cin" name="cin" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="adresse">Adresse</label>
+                    <textarea id="adresse" name="adresse" rows="3"></textarea>
+                </div>
+            </div>
+
+            <!-- Section Situation Financière -->
+            <div class="form-section">
+                <h2>💰 Situation Financière</h2>
+
+                <div class="form-group">
+                    <label for="profession">Profession *</label>
+                    <input type="text" id="profession" name="profession" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="revenu_mensuel">Revenu Mensuel (€) *</label>
+                    <input type="number" id="revenu_mensuel" name="revenu_mensuel" step="0.01" required
+                           onchange="calculerCapacite()">
+                </div>
+
+                <div class="form-group">
+                    <label for="depenses_mensuelles">Dépenses Mensuelles (€) *</label>
+                    <input type="number" id="depenses_mensuelles" name="depenses_mensuelles" step="0.01" required
+                           onchange="calculerCapacite()">
+                </div>
+
+                <div class="calcul-capacite">
+                    <h4>📊 Capacité de Remboursement</h4>
+                    <p>Revenu disponible: <span id="revenu_disponible">0</span> €</p>
+                    <p>Score capacité: <span id="score_capacite">0</span>%</p>
+                </div>
+            </div>
+
+            <!-- Section Vérification Identité -->
+            <div class="form-section">
+                <h2>🔐 Vérification d'Identité</h2>
+
+                <!-- Photo CIN -->
+                <div class="form-group">
+                    <label>📷 Photo de la CIN *</label>
+                    <div class="photo-upload">
+                        <input type="file" id="photo_id" name="photo_id" accept="image/*" required
+                               onchange="previewImage(this, 'previewId')">
+                        <p>Prenez une photo claire de la pièce d'identité</p>
+                        <img id="previewId" class="photo-preview">
+                    </div>
+                </div>
+
+                <!-- Selfie -->
+                <div class="form-group">
+                    <label>🤳 Selfie *</label>
+                    <div class="photo-upload">
+                        <input type="file" id="photo_selfie" name="photo_selfie" accept="image/*" required
+                               onchange="previewImage(this, 'previewSelfie')">
+                        <p>Prenez un selfie clair de votre visage</p>
+                        <img id="previewSelfie" class="photo-preview">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div id="verificationStatus"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">✅ Créer le Dossier</button>
+        </form>
+    </div>
+
+    <script>
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            const file = input.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function calculerCapacite() {
+            const revenu = parseFloat(document.getElementById('revenu_mensuel').value) || 0;
+            const depenses = parseFloat(document.getElementById('depenses_mensuelles').value) || 0;
+            const disponible = revenu - depenses;
+            const score = revenu > 0 ? Math.min(100, (disponible / revenu * 100)) : 0;
+
+            document.getElementById('revenu_disponible').textContent = disponible.toFixed(2);
+            document.getElementById('score_capacite').textContent = score.toFixed(1);
+        }
+
+        // Vérification en temps réel des photos
+        document.getElementById('photo_selfie').addEventListener('change', function() {
+            const idFile = document.getElementById('photo_id').files[0];
+            const selfieFile = this.files[0];
+
+            if (idFile && selfieFile) {
+                document.getElementById('verificationStatus').innerHTML =
+                    '<div class="success">✅ Photos prêtes pour vérification faciale</div>';
+            }
+        });
+    </script>
+</body>
+</html>
+
+<!-- Section Caméra - À ajouter après vos sections upload existantes -->
+<div class="form-section">
+    <h2>📷 Ou prendre les photos avec la caméra</h2>
+
+    <!-- Caméra pour Photo ID -->
+    <div class="form-group">
+        <label>📷 Photo CIN avec Caméra</label>
+        <div class="camera-container">
+            <video id="videoId" autoplay playsinline style="width: 100%; max-width: 400px; border: 2px solid #ccc; display: none;"></video>
+            <canvas id="canvasId" style="display: none;"></canvas>
+            <div class="camera-controls">
+                <button type="button" id="startCameraId" class="btn btn-secondary">🎥 Activer Caméra CIN</button>
+                <button type="button" id="captureId" class="btn btn-primary" style="display: none;">📸 Prendre Photo CIN</button>
+                <button type="button" id="retakeId" class="btn btn-warning" style="display: none;">🔄 Reprendre</button>
+            </div>
+            <img id="previewCameraId" class="photo-preview" style="display: none;">
+            <input type="hidden" id="photoIdData" name="photo_id_data">
+        </div>
+    </div>
+
+    <!-- Caméra pour Selfie -->
+    <div class="form-group">
+        <label>🤳 Selfie avec Caméra</label>
+        <div class="camera-container">
+            <video id="videoSelfie" autoplay playsinline style="width: 100%; max-width: 400px; border: 2px solid #ccc; display: none;"></video>
+            <canvas id="canvasSelfie" style="display: none;"></canvas>
+            <div class="camera-controls">
+                <button type="button" id="startCameraSelfie" class="btn btn-secondary">🎥 Activer Caméra Selfie</button>
+                <button type="button" id="captureSelfie" class="btn btn-primary" style="display: none;">📸 Prendre Selfie</button>
+                <button type="button" id="retakeSelfie" class="btn btn-warning" style="display: none;">🔄 Reprendre</button>
+            </div>
+            <img id="previewCameraSelfie" class="photo-preview" style="display: none;">
+            <input type="hidden" id="photoSelfieData" name="photo_selfie_data">
+        </div>
+    </div>
+</div>
+
+<style>
+.camera-container {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.camera-controls {
+    margin: 15px 0;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #000;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+}
+
+.photo-option {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+</style>
+
+<script>
+let streamId = null;
+let streamSelfie = null;
+
+// Caméra pour Photo ID
+document.getElementById('startCameraId').addEventListener('click', function() {
+    startCamera('videoId', 'startCameraId', 'captureId', 'retakeId')
+        .then(stream => streamId = stream);
+});
+
+document.getElementById('captureId').addEventListener('click', function() {
+    capturePhoto('videoId', 'canvasId', 'previewCameraId', 'photoIdData', 'retakeId');
+    disableFileInput('photo_id');
+});
+
+document.getElementById('retakeId').addEventListener('click', function() {
+    retakePhoto('videoId', 'previewCameraId', 'photoIdData', 'captureId', 'retakeId');
+    enableFileInput('photo_id');
+});
+
+// Caméra pour Selfie
+document.getElementById('startCameraSelfie').addEventListener('click', function() {
+    startCamera('videoSelfie', 'startCameraSelfie', 'captureSelfie', 'retakeSelfie')
+        .then(stream => streamSelfie = stream);
+});
+
+document.getElementById('captureSelfie').addEventListener('click', function() {
+    capturePhoto('videoSelfie', 'canvasSelfie', 'previewCameraSelfie', 'photoSelfieData', 'retakeSelfie');
+    disableFileInput('photo_selfie');
+});
+
+document.getElementById('retakeSelfie').addEventListener('click', function() {
+    retakePhoto('videoSelfie', 'previewCameraSelfie', 'photoSelfieData', 'captureSelfie', 'retakeSelfie');
+    enableFileInput('photo_selfie');
+});
+
+// Désactiver l'input file quand on utilise la caméra
+function disableFileInput(inputId) {
+    document.getElementById(inputId).disabled = true;
+}
+
+function enableFileInput(inputId) {
+    document.getElementById(inputId).disabled = false;
+    document.getElementById(inputId).value = '';
+}
+
+// Fonctions caméra
+async function startCamera(videoId, startBtnId, captureBtnId, retakeBtnId) {
+    try {
+        const video = document.getElementById(videoId);
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: videoId === 'videoSelfie' ? 'user' : 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        });
+
+        video.srcObject = stream;
+        video.style.display = 'block';
+        document.getElementById(startBtnId).style.display = 'none';
+        document.getElementById(captureBtnId).style.display = 'inline-block';
+
+        return stream;
+    } catch (error) {
+        alert('Erreur caméra: ' + error.message);
+        console.error('Erreur caméra:', error);
+    }
+}
+
+function capturePhoto(videoId, canvasId, previewId, dataInputId, retakeBtnId) {
+    const video = document.getElementById(videoId);
+    const canvas = document.getElementById(canvasId);
+    const preview = document.getElementById(previewId);
+    const context = canvas.getContext('2d');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+    preview.src = imageData;
+    preview.style.display = 'block';
+    document.getElementById(dataInputId).value = imageData;
+
+    video.style.display = 'none';
+    document.getElementById(retakeBtnId).style.display = 'inline-block';
+
+    // Arrêter le stream
+    if (videoId === 'videoId' && streamId) {
+        streamId.getTracks().forEach(track => track.stop());
+    }
+    if (videoId === 'videoSelfie' && streamSelfie) {
+        streamSelfie.getTracks().forEach(track => track.stop());
+    }
+}
+
+function retakePhoto(videoId, previewId, dataInputId, captureBtnId, retakeBtnId) {
+    const video = document.getElementById(videoId);
+    const preview = document.getElementById(previewId);
+
+    preview.style.display = 'none';
+    document.getElementById(dataInputId).value = '';
+    video.style.display = 'block';
+    document.getElementById(captureBtnId).style.display = 'inline-block';
+    document.getElementById(retakeBtnId).style.display = 'none';
+}
+
+// Nettoyage
+window.addEventListener('beforeunload', function() {
+    if (streamId) streamId.getTracks().forEach(track => track.stop());
+    if (streamSelfie) streamSelfie.getTracks().forEach(track => track.stop());
+});
+</script>

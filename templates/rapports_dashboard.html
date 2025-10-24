@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Génération Rapports - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #20c997; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .btn-success { background: #20c997; }
+        .rapport-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        .rapport-card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Génération de Rapports GMES</h1>
+        <p>Connecté en tant que: {{ current_user.prenom }} {{ current_user.nom }}</p>
+        <a href="{{ url_for('deconnexion') }}" style="color: white;">Déconnexion</a>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <h3>📈 Rapports Générés</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ stats.rapports_generes|default(0) }}</p>
+                <p>Ce mois</p>
+            </div>
+            <div class="stat-card">
+                <h3>✅ Exports Réussis</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ stats.export_reussis|default(0) }}</p>
+                <p>Taux de succès: 95%</p>
+            </div>
+            <div class="stat-card">
+                <h3>🚨 Rapports Urgents</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ stats.rapports_urgents|default(0) }}</p>
+                <p>En attente</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
+            <!-- Génération Rapports -->
+            <div style="background: white; padding: 2rem; border-radius: 10px;">
+                <h3>🚀 Générer Rapports</h3>
+                <a href="{{ url_for('rapport_prets') }}" class="btn">📋 Rapport Prêts</a>
+                <a href="{{ url_for('rapport_remboursements') }}" class="btn">💳 Rapport Remboursements</a>
+                <a href="{{ url_for('rapport_clients') }}" class="btn">👥 Rapport Clients</a>
+                <a href="{{ url_for('rapport_groupes') }}" class="btn">👥 Rapport Groupes</a>
+            </div>
+
+            <!-- Export Données -->
+            <div style="background: white; padding: 2rem; border-radius: 10px;">
+                <h3>📤 Exporter Données</h3>
+                <a href="{{ url_for('export_excel_prets') }}" class="btn btn-success">📊 Excel - Prêts</a>
+                <a href="{{ url_for('export_excel_clients') }}" class="btn btn-success">📊 Excel - Clients</a>
+                <a href="{{ url_for('export_pdf_rapport') }}" class="btn">📄 PDF - Rapport Complet</a>
+                <a href="{{ url_for('export_stats') }}" class="btn">📈 Export Statistiques</a>
+            </div>
+        </div>
+
+        <!-- Rapports Récents -->
+        <div style="background: white; padding: 2rem; border-radius: 10px;">
+            <h3>🕒 Rapports Récents</h3>
+            <div class="rapport-grid">
+                <div class="rapport-card">
+                    <h4>📋 Prêts Mensuel</h4>
+                    <p>Généré: Aujourd'hui 10:30</p>
+                    <a href="#" class="btn">📥 Télécharger</a>
+                </div>
+                <div class="rapport-card">
+                    <h4>💳 Remboursements</h4>
+                    <p>Généré: Hier 15:45</p>
+                    <a href="#" class="btn">📥 Télécharger</a>
+                </div>
+                <div class="rapport-card">
+                    <h4>👥 Nouveaux Clients</h4>
+                    <p>Généré: 02/01/2024</p>
+                    <a href="#" class="btn">📥 Télécharger</a>
+                </div>
+                <div class="rapport-card">
+                    <h4>📈 Performance</h4>
+                    <p>Généré: 01/01/2024</p>
+                    <a href="#" class="btn">📥 Télécharger</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rapports Programmes -->
+        <div style="background: white; padding: 2rem; border-radius: 10px; margin-top: 2rem;">
+            <h3>⏰ Rapports Programmes</h3>
+            <p><strong>📅 Rapport Quotidien:</strong> 08:00 (Prêts & Remboursements)</p>
+            <p><strong>📅 Rapport Hebdomadaire:</strong> Lundi 09:00 (Performance)</p>
+            <p><strong>📅 Rapport Mensuel:</strong> 1er du mois 10:00 (Complet)</p>
+            <a href="{{ url_for('programmer_rapports') }}" class="btn">⚙️ Programmer Rapports</a>
+        </div>
+    </div>
+</body>
+</html>

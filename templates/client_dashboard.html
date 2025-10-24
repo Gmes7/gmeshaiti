@@ -3,70 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client - GMES</title>
+    <title>Tableau de Bord Client - GMES</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-        .header { background: #007bff; color: white; padding: 1rem 2rem; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
-        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn { display: inline-block; padding: 0.5rem 1rem; background: #28a745; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f6f9; }
+        .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .welcome-section { background: white; padding: 2rem; border-radius: 15px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #007bff; }
+        .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0; }
+        .action-section { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .btn { display: inline-block; padding: 0.75rem 1.5rem; margin: 0.25rem; border-radius: 8px; text-decoration: none; font-weight: 500; transition: all 0.3s; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-warning { background: #ffc107; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .mobile-app { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 2rem; border-radius: 15px; margin-top: 2rem; text-align: center; }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; font-weight: 600; }
+        .badge-expert { background: #ffd700; color: #000; }
+        .feature-tags { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+        .feature-tag { background: #e9ecef; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.875rem; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>👤 Client GMES</h1>
-        <p>Connecté en tant que: {{ current_user.nom }} {{ current_user.prenom }}</p>
-        <a href="{{ url_for('deconnexion') }}" style="color: white;">Déconnexion</a>
+        <div>
+            <h1 style="margin: 0; font-size: 1.8rem;">🎯 Tableau de Bord GMES</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">
+                Bienvenue, {{ current_user.prenom }} {{ current_user.nom }}
+                <span class="badge badge-expert">client Niveau 3 - Expert 💎</span>
+            </p>
+        </div>
+        <a href="{{ url_for('deconnexion') }}" style="color: white; text-decoration: none; font-weight: bold;">🚪 Déconnexion</a>
     </div>
 
     <div class="container">
-        <h2>Mon Espace Client</h2>
+        <!-- Section de bienvenue -->
+        <div class="welcome-section">
+            <h2>Votre Espace Personnel</h2>
+            <p>Gérez vos prêts, suivez votre progression et découvrez de nouvelles opportunités</p>
+        </div>
 
-        <div class="stats">
+        <!-- Statistiques principales -->
+        <div class="stats-grid">
             <div class="stat-card">
-                <h3>💰 Prêt Actuel</h3>
-                <p>25,000 HTG</p>
+                <h3>💰 Prêts Actifs</h3>
+                <p style="font-size: 2rem; font-weight: bold; margin: 0.5rem 0;">{{ stats.prets_actifs or 0 }}</p>
+                <p style="color: #666; margin: 0;">{{ stats.montant_actifs or 0 }} HTG</p>
             </div>
             <div class="stat-card">
-                <h3>📅 Prochaine Échéance</h3>
-                <p>15/12/2024</p>
+                <h3>📈 Score Crédit</h3>
+                <p style="font-size: 2rem; font-weight: bold; margin: 0.5rem 0;">{{ stats.score_credit or 795 }}</p>
+                <p style="color: #666; margin: 0;">{{ stats.score_label or "Client récent" }}</p>
             </div>
             <div class="stat-card">
-                <h3>⭐ Score Crédit</h3>
-                <p>Excellent</p>
+                <h3>👥 Mon Groupe</h3>
+                <p style="font-size: 1.5rem; font-weight: bold; margin: 0.5rem 0;">
+                    {% if groupe %}{{ groupe.nom }}{% else %}Aucun{% endif %}
+                </p>
+                <p style="color: #666; margin: 0;">
+                    {% if groupe %}{{ groupe.membres_count or 1 }} membres{% else %}Rejoignez un groupe{% endif %}
+                </p>
+            </div>
+            <div class="stat-card">
+                <h3>💎 Niveau</h3>
+                <p style="font-size: 2rem; font-weight: bold; margin: 0.5rem 0;">{{ stats.niveau or 1 }}</p>
+                <p style="color: #666; margin: 0;">{{ stats.points or 65 }} points</p>
+            </div>
+            <div class="stat-card">
+                <h3>📊 Remboursements</h3>
+                <p style="font-size: 2rem; font-weight: bold; margin: 0.5rem 0;">0</p>
+                <p style="color: #666; margin: 0;">Ce mois</p>
+            </div>
+            <div class="stat-card">
+                <h3>🔔 Notifications</h3>
+                <p style="font-size: 2rem; font-weight: bold; margin: 0.5rem 0;">{{ stats.notifications_non_lues or 0 }}</p>
+                <p style="color: #666; margin: 0;">Non lues</p>
             </div>
         </div>
 
-        <div style="background: white; padding: 2rem; border-radius: 10px;">
-            <h3>Mes Actions</h3>
-            <a href="{{ url_for('demande_pret') }}" class="btn">💰 Demander un prêt</a>
-            <a href="{{ url_for('mes_prets') }}" class="btn">📋 Mes prêts</a>
-            <a href="#" class="btn">💳 Faire un remboursement</a>
-            <a href="#" class="btn">📊 Mon historique</a>
+        <!-- Sections d'actions -->
+        <div class="actions-grid">
+            <!-- Gestion des Prêts -->
+            <div class="action-section">
+                <h3>💰 Gestion des Prêts</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="{{ url_for('demande_pret') }}" class="btn btn-primary">➕ Demander un prêt</a>
+                    <a href="{{ url_for('mes_prets') }}" class="btn btn-secondary">📋 Mes prêts</a>
+                    <a href="#" class="btn btn-info">🧮 Simulateur</a>
+                    <a href="{{ url_for('nouveau_remboursement') }}" class="btn btn-success">💳 Remboursements</a>
+                </div>
+            </div>
+
+            <!-- Groupes Solidaires -->
+            <div class="action-section">
+                <h3>👥 Groupes Solidaires</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="{{ url_for('liste_groupes') }}" class="btn btn-primary">🏘️ Voir les groupes</a>
+                    {% if groupe %}
+                    <a href="{{ url_for('detail_groupe', groupe_id=current_user.groupe_id) }}" class="btn btn-secondary">👨‍👩‍👧‍👦 Mon groupe</a>
+                    <a href="{{ url_for('demande_pret_solidaire', groupe_id=current_user.groupe_id) }}" class="btn btn-success">🤝 Prêt solidaire</a>
+                    {% else %}
+                    <a href="{{ url_for('liste_groupes') }}" class="btn btn-warning">👥 Rejoindre un groupe</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Intelligence Artificielle -->
+            <div class="action-section">
+                <h3>🤖 Intelligence Artificielle</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="{{ url_for('score_credit') }}" class="btn btn-primary">🎯 Mon score crédit</a>
+                    <a href="{{ url_for('recommandations_pret') }}" class="btn btn-secondary">💡 Recommandations</a>
+                    <a href="{{ url_for('analytics_personnel') }}" class="btn btn-info">📊 Analytics perso</a>
+                    <a href="{{ url_for('previsions_remboursement') }}" class="btn btn-success">🔮 Prévisions</a>
+                </div>
+            </div>
+
+            <!-- Gamification -->
+            <div class="action-section">
+                <h3>💎 Gamification</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="{{ url_for('profil_gamification') }}" class="btn btn-primary">🏆 Mon niveau</a>
+                    <a href="{{ url_for('defis') }}" class="btn btn-secondary">🎯 Défis & objectifs</a>
+                    <a href="{{ url_for('recompenses') }}" class="btn btn-warning">🎁 Mes récompenses</a>
+                    <a href="{{ url_for('classement') }}" class="btn btn-info">📈 Classement</a>
+                </div>
+            </div>
+
+            <!-- Préférences -->
+            <div class="action-section">
+                <h3>⚙️ Préférences</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="{{ url_for('notifications') }}" class="btn btn-secondary">🔔 Notifications</a>
+                    <a href="{{ url_for('parametres') }}" class="btn btn-info">🔧 Paramètres</a>
+                    <a href="{{ url_for('profil') }}" class="btn btn-primary">👤 Mon profil</a>
+                    <a href="{{ url_for('securite') }}" class="btn btn-warning">🔐 Sécurité</a>
+                    <a href="{{ url_for('reconnaissance_faciale') }}" class="btn btn-success">📷 Reconnaissance faciale</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Mobile -->
+        <div class="mobile-app">
+            <h3>📱 Application Mobile</h3>
+            <p>Téléchargez notre application mobile pour une expérience optimale :</p>
+            <div style="margin: 1.5rem 0;">
+                <a href="{{ url_for('mobile_dashboard') }}" class="btn" style="background: white; color: #667eea; margin-right: 1rem;">📲 Télécharger l'app</a>
+                <a href="{{ url_for('mobile_dashboard') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">🔗 Lien mobile</a>
+            </div>
+            <div class="feature-tags">
+                <span class="feature-tag">✅ Reconnaissance faciale</span>
+                <span class="feature-tag">📊 Analytics temps réel</span>
+                <span class="feature-tag">🔔 Notifications push</span>
+            </div>
+            <div style="margin-top: 1rem;">
+                <a href="{{ url_for('test_mobile') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white;">🔧 Test API & Diagnostic</a>
+            </div>
         </div>
     </div>
 </body>
 </html>
-
-<div style="background: white; padding: 2rem; border-radius: 10px;">
-    <h3>Mes Actions</h3>
-    <a href="{{ url_for('demande_pret') }}" class="btn">💰 Demander un prêt</a>
-    <a href="{{ url_for('mes_prets') }}" class="btn">📋 Mes prêts</a>
-    <a href="{{ url_for('nouveau_remboursement') }}" class="btn">💳 Faire un remboursement</a>
-    <a href="{{ url_for('mes_remboursements') }}" class="btn">📊 Mes remboursements</a>
-</div>
-
-<div style="background: white; padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
-    <h3>👥 Mon Groupe de Solidarité</h3>
-    {% if current_user.groupe_id %}
-        {% set groupe = Groupe.query.get(current_user.groupe_id) %}
-        <p><strong>Groupe:</strong> {{ groupe.nom }} ({{ groupe.code_groupe }})</p>
-        <p><strong>Zone:</strong> {{ groupe.zone }}</p>
-        <a href="{{ url_for('detail_groupe', groupe_id=current_user.groupe_id) }}" class="btn">📊 Voir mon groupe</a>
-        <a href="{{ url_for('demande_pret_solidaire', groupe_id=current_user.groupe_id) }}" class="btn">💰 Prêt solidaire</a>
-    {% else %}
-        <p>Vous n'êtes pas encore membre d'un groupe de solidarité.</p>
-        <a href="{{ url_for('liste_groupes') }}" class="btn">👥 Rejoindre un groupe</a>
-    {% endif %}
-</div>

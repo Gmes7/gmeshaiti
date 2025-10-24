@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>💎 Gamification</h2>
+
+    <!-- Section Niveau (déjà présente) -->
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <h3>🏆 Mon niveau</h3>
+            <!-- Votre code existant pour le niveau -->
+        </div>
+    </div>
+
+    <!-- Grille des fonctionnalités AVEC JAVASCRIPT -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h1>🎯</h1>
+                    <h5>Défis & objectifs</h5>
+                    <p>Relevez des défis pour gagner des points</p>
+                    <button onclick="showDefis()" class="btn btn-primary">Voir les défis</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h1>🎁</h1>
+                    <h5>Mes récompenses</h5>
+                    <p>Échangez vos points contre des avantages</p>
+                    <button onclick="showRecompenses()" class="btn btn-primary">Voir les récompenses</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h1>📈</h1>
+                    <h5>Classement</h5>
+                    <p>Comparez-vous aux autres membres</p>
+                    <button onclick="showClassement()" class="btn btn-primary">Voir le classement</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h1>🏆</h1>
+                    <h5>Mes badges</h5>
+                    <p>Débloquez des badges exclusifs</p>
+                    <button onclick="showBadges()" class="btn btn-primary">Voir mes badges</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section pour afficher le contenu dynamique -->
+    <div id="content-display" class="card mt-4" style="display: none;">
+        <div class="card-body">
+            <div id="dynamic-content"></div>
+            <button onclick="hideContent()" class="btn btn-secondary mt-3">← Retour</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showDefis() {
+    document.getElementById('dynamic-content').innerHTML = `
+        <h4>🎯 Vos Défis</h4>
+        <div class="alert alert-info">
+            <h5>Premier prêt</h5>
+            <p>Obtenez votre premier prêt</p>
+            <span class="badge bg-success">🎁 100 points</span>
+        </div>
+        <div class="alert alert-warning">
+            <h5>Remboursement ponctuel</h5>
+            <p>3 remboursements à temps</p>
+            <span class="badge bg-success">🎁 50 points</span>
+            <span class="badge bg-primary">✅ 2/3 terminés</span>
+        </div>
+    `;
+    showContent();
+}
+
+function showRecompenses() {
+    document.getElementById('dynamic-content').innerHTML = `
+        <h4>🎁 Vos Récompenses Disponibles</h4>
+        <div class="alert alert-success">
+            <h5>Réduction de taux 1%</h5>
+            <p>300 points - <strong>✅ Disponible</strong></p>
+            <button class="btn btn-sm btn-success">Échanger</button>
+        </div>
+        <div class="alert alert-secondary">
+            <h5>Frais de dossier offerts</h5>
+            <p>500 points - ❌ Points insuffisants</p>
+        </div>
+    `;
+    showContent();
+}
+
+function showClassement() {
+    document.getElementById('dynamic-content').innerHTML = `
+        <h4>📈 Classement</h4>
+        <ol>
+            <li>Marie Dupont - 850 points 🥇</li>
+            <li>Jean Martin - 720 points 🥈</li>
+            <li><strong>Vous - 650 points</strong> 🥉</li>
+            <li>Sophie Laurent - 580 points</li>
+        </ol>
+    `;
+    showContent();
+}
+
+function showBadges() {
+    document.getElementById('dynamic-content').innerHTML = `
+        <h4>🏆 Vos Badges</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <h5>✅ Débloqués</h5>
+                <p>🥉 Bronze - Premier prêt</p>
+                <p>⭐ Débutant - Première connexion</p>
+            </div>
+            <div class="col-md-6">
+                <h5>🔒 À débloquer</h5>
+                <p>🥈 Argent - 5 remboursements</p>
+                <p>🥇 Or - Score > 750</p>
+            </div>
+        </div>
+    `;
+    showContent();
+}
+
+function showContent() {
+    document.getElementById('content-display').style.display = 'block';
+    window.scrollTo(0, document.getElementById('content-display').offsetTop);
+}
+
+function hideContent() {
+    document.getElementById('content-display').style.display = 'none';
+}
+</script>
+{% endblock %}

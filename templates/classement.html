@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>📈 Classement</h2>
+
+    <div class="card">
+        <div class="card-body">
+            {% for joueur in classement %}
+            <div class="d-flex justify-content-between align-items-center p-2 {% if joueur.position == 3 %}bg-light{% endif %}">
+                <div>
+                    <strong>#{{ joueur.position }}</strong>
+                    {{ joueur.nom }}
+                    {% if joueur.position == 3 %}
+                    <span class="badge bg-primary">Vous</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="badge bg-warning">Niveau {{ joueur.niveau }}</span>
+                    <span class="badge bg-info">{{ joueur.points }} pts</span>
+                </div>
+            </div>
+            {% if not loop.last %}<hr>{% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Groupe - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #17a2b8; color: white; padding: 1rem 2rem; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        .group-card { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 Mon Groupe GMES</h1>
+        <a href="{{ url_for('employe_dashboard') }}" style="color: white;">← Retour</a>
+    </div>
+
+    <div class="container">
+        {% if groupe %}
+        <div class="group-card">
+            <h2>{{ groupe.nom }}</h2>
+            <p><strong>Code:</strong> {{ groupe.code_groupe }}</p>
+            <p><strong>Zone:</strong> {{ groupe.zone }}</p>
+            <p><strong>Date création:</strong> {{ groupe.date_creation.strftime('%d/%m/%Y') }}</p>
+
+            <h3>👥 Membres de mon groupe</h3>
+            {% set membres = User.query.filter_by(groupe_id=groupe.id).all() %}
+            <ul>
+                {% for membre in membres %}
+                <li>{{ membre.prenom }} {{ membre.nom }} - {{ membre.profession }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="group-card">
+            <h2>📭 Aucun groupe assigné</h2>
+            <p>Vous n'êtes actuellement assigné à aucun groupe.</p>
+            <p>Contactez votre superviseur pour être assigné à un groupe.</p>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

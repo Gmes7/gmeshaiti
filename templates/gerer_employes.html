@@ -1,46 +1,214 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gérer le Personnel - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #dc3545; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1rem; color: white; text-decoration: none; border-radius: 5px; margin: 0.2rem; border: none; cursor: pointer; }
+        .btn-primary { background: #007bff; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; }
+        .btn-info { background: #17a2b8; }
+        .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+        .table { width: 100%; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .table th, .table td { padding: 1rem; text-align: left; border-bottom: 1px solid #ddd; }
+        .statut-actif { color: green; font-weight: bold; }
+        .statut-suspendu { color: orange; font-weight: bold; }
+        .statut-attente { color: #6c757d; font-weight: bold; }
+        .badge { padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.7rem; font-weight: bold; }
+        .badge-superviseur { background: #6f42c1; color: white; }
+        .badge-employe { background: #17a2b8; color: white; }
+        .filters { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .filter-btn { padding: 0.5rem 1rem; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer; }
+        .filter-btn.active { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 Gestion du Personnel - GMES</h1>
+        <a href="{{ url_for('admin_dashboard') }}" style="color: white;">← Retour Dashboard</a>
+    </div>
 
-{% block content %}
-<div class="container">
-    <h2>👥 Gestion des Employés</h2>
-
-    <div class="card">
-        <div class="card-header">
-            <h3>Liste des employés</h3>
-            <a href="{{ url_for('creer_employe') }}" class="btn btn-primary">➕ Ajouter un employé</a>
+    <div class="container">
+        <!-- Bouton Ajouter -->
+        <div style="text-align: right; margin-bottom: 2rem;">
+            <a href="{{ url_for('ajouter_employe') }}" class="btn btn-success">➕ Ajouter un Utilisateur</a>
         </div>
 
-        <div class="card-body">
-            {% if employes %}
-            <table class="table">
+        <!-- Filtres -->
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterUsers('all')">Tous</button>
+            <button class="filter-btn" onclick="filterUsers('employe')">👥 Employés</button>
+            <button class="filter-btn" onclick="filterUsers('superviseur')">👨‍💼 Superviseurs</button>
+            <button class="filter-btn" onclick="filterUsers('en_attente')">⏳ En Attente</button>
+            <button class="filter-btn" onclick="filterUsers('actif')">✅ Actifs</button>
+        </div>
+
+        <!-- Tableau du Personnel -->
+        <div class="table">
+            <table style="width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr>
-                        <th>Nom</th>
-                        <th>Email</th>
-                        <th>Téléphone</th>
-                        <th>Date création</th>
+                    <tr style="background: #f8f9fa;">
+                        <th>Nom & Prénom</th>
+                        <th>Contact</th>
+                        <th>Rôle & Fonction</th>
+                        <th>Statut</th>
+                        <th>Date Création</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for employe in employes %}
-                    <tr>
-                        <td>{{ employe.prenom }} {{ employe.nom }}</td>
-                        <td>{{ employe.email }}</td>
-                        <td>{{ employe.telephone }}</td>
-                        <td>{{ employe.date_creation.strftime('%d/%m/%Y') }}</td>
+                    {% for user in utilisateurs %}
+                    <tr class="user-row" data-role="{{ user.role }}" data-statut="{{ user.statut }}">
                         <td>
-                            <a href="#" class="btn btn-sm btn-warning">✏️ Modifier</a>
-                            <a href="#" class="btn btn-sm btn-danger">🗑️ Supprimer</a>
+                            <strong>{{ user.prenom }} {{ user.nom }}</strong>
+                            <br>
+                            <small>@{{ user.username }}</small>
+                            <br>
+                            <span class="badge {% if user.role == 'superviseur' %}badge-superviseur{% else %}badge-employe{% endif %}">
+                                {% if user.role == 'superviseur' %}👨‍💼 Superviseur{% else %}👥 Employé{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {{ user.email }}<br>
+                            <small>{{ user.telephone or 'Non renseigné' }}</small>
+                        </td>
+                        <td>
+                            {% if user.fonction == 'caissier' %}🏦 Caissier
+                            {% elif user.fonction == 'analyste_credit' %}📊 Analyste Crédit
+                            {% elif user.fonction == 'conseiller' %}👥 Conseiller
+                            {% elif user.fonction == 'gestionnaire_groupe' %}🎯 Gestionnaire
+                            {% elif user.fonction == 'rapports' %}📈 Rapports
+                            {% elif user.fonction == 'superviseur' %}👨‍💼 Superviseur
+                            {% else %}{{ user.fonction }}{% endif %}
+                        </td>
+                        <td>
+                            {% if user.statut == 'actif' %}
+                                <span class="statut-actif">✅ Actif</span>
+                                {% if user.approuve_par %}
+                                <br><small>Apprové le {{ user.date_approbation.strftime('%d/%m/%Y') if user.date_approbation else 'N/A' }}</small>
+                                {% endif %}
+                            {% elif user.statut == 'suspendu' %}
+                                <span class="statut-suspendu">⏸️ Suspendu</span>
+                            {% else %}
+                                <span class="statut-attente">⏳ En attente</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user.date_creation.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            <!-- Actions selon le statut -->
+                            {% if user.statut == 'en_attente' %}
+                                <a href="{{ url_for('approver_utilisateur', user_id=user.id) }}"
+                                   class="btn btn-success btn-sm"
+                                   onclick="return confirm('Approuver {{ user.prenom }} {{ user.nom }} ?')">
+                                   ✅ Approuver
+                                </a>
+                            {% endif %}
+
+                            {% if user.statut == 'actif' %}
+                                <a href="{{ url_for('suspendre_utilisateur', user_id=user.id) }}"
+                                   class="btn btn-warning btn-sm"
+                                   onclick="return confirm('Suspendre {{ user.prenom }} {{ user.nom }} ?')">
+                                   ⏸️ Suspendre
+                                </a>
+                            {% elif user.statut == 'suspendu' %}
+                                <a href="{{ url_for('approver_utilisateur', user_id=user.id) }}"
+                                   class="btn btn-success btn-sm"
+                                   onclick="return confirm('Réactiver {{ user.prenom }} {{ user.nom }} ?')">
+                                   🔄 Réactiver
+                                </a>
+                            {% endif %}
+
+                            <a href="{{ url_for('modifier_employe', employe_id=user.id) }}"
+                               class="btn btn-primary btn-sm">✏️ Modifier</a>
+
+                            <a href="{{ url_for('supprimer_employe', employe_id=user.id) }}"
+                               class="btn btn-danger btn-sm"
+                               onclick="return confirm('Supprimer définitivement {{ user.prenom }} {{ user.nom }} ?')">
+                               🗑️ Supprimer
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                            Aucun utilisateur trouvé.
+                            <a href="{{ url_for('ajouter_employe') }}">Ajouter le premier utilisateur</a>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            {% else %}
-            <p>Aucun employé trouvé.</p>
-            {% endif %}
+        </div>
+
+        <!-- Statistiques Complètes -->
+        <div style="background: white; padding: 1.5rem; border-radius: 10px; margin-top: 2rem;">
+            <h3>📊 Tableau de Bord Personnel</h3>
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem;">
+                <div style="text-align: center; padding: 1rem; background: #e7f3ff; border-radius: 5px;">
+                    <strong>Total</strong><br>
+                    <span style="font-size: 1.5rem;">{{ stats.total }}</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #fff3cd; border-radius: 5px;">
+                    <strong>En Attente</strong><br>
+                    <span style="font-size: 1.5rem; color: #ffc107;">{{ stats.en_attente }}</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #d4edda; border-radius: 5px;">
+                    <strong>Actifs</strong><br>
+                    <span style="font-size: 1.5rem; color: #28a745;">{{ stats.actifs }}</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #f8d7da; border-radius: 5px;">
+                    <strong>Suspendus</strong><br>
+                    <span style="font-size: 1.5rem; color: #dc3545;">{{ stats.suspendus }}</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #e2e3e5; border-radius: 5px;">
+                    <strong>Employés</strong><br>
+                    <span style="font-size: 1.5rem;">{{ stats.employes }}</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #e2e3e5; border-radius: 5px;">
+                    <strong>Superviseurs</strong><br>
+                    <span style="font-size: 1.5rem;">{{ stats.superviseurs }}</span>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <script>
+        function filterUsers(filter) {
+            const rows = document.querySelectorAll('.user-row');
+            const buttons = document.querySelectorAll('.filter-btn');
+
+            // Mettre à jour les boutons actifs
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if ((filter === 'all' && btn.textContent === 'Tous') ||
+                    (filter !== 'all' && btn.textContent.includes(filter))) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Filtrer les lignes
+            rows.forEach(row => {
+                if (filter === 'all') {
+                    row.style.display = '';
+                } else if (filter === 'employe' && row.dataset.role === 'employe') {
+                    row.style.display = '';
+                } else if (filter === 'superviseur' && row.dataset.role === 'superviseur') {
+                    row.style.display = '';
+                } else if (filter === 'en_attente' && row.dataset.statut === 'en_attente') {
+                    row.style.display = '';
+                } else if (filter === 'actif' && row.dataset.statut === 'actif') {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

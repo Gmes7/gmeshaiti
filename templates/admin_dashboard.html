@@ -6,53 +6,106 @@
     <title>Administration - GMES</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-        .header { background: #dc3545; color: white; padding: 1rem 2rem; }
+        .header { background: #dc3545; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
         .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
         .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2rem 0; }
         .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .stat-number { font-size: 2rem; font-weight: bold; margin: 0.5rem 0; }
+        .stat-label { color: #666; font-size: 0.9rem; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>👨‍💼 Administration GMES</h1>
-        <p>Connecté en tant que: {{ current_user.nom }} {{ current_user.prenom }} (Admin)</p>
-        <a href="{{ url_for('deconnexion') }}" style="color: white;">Déconnexion</a>
+        <div>
+            <h1>👨‍💼 Administration GMES</h1>
+            <p>Connecté en tant que: {{ current_user.prenom }} {{ current_user.nom }} (Admin)</p>
+        </div>
+        <div>
+            <a href="{{ url_for('deconnexion') }}" style="color: white; text-decoration: none;">🚪 Déconnexion</a>
+        </div>
     </div>
 
     <div class="container">
         <h2>Tableau de Bord Administrateur</h2>
 
+        <!-- Debug: Afficher les stats brutes pour vérification -->
+        <div style="background: #f8f9fa; padding: 1rem; margin: 1rem 0; border-radius: 5px;">
+            <small>DEBUG: Stats reçues -
+                Clients: {{ stats.clients.total if stats else 'N/A' }},
+                Prêts actifs: {{ stats.prets.actifs if stats else 'N/A' }}
+            </small>
+        </div>
+
+        <!-- Statistiques Dynamiques -->
         <div class="stats">
+            <!-- Clients -->
             <div class="stat-card">
                 <h3>👥 Clients</h3>
-                <p>25</p>
+                <div class="stat-number">{{ stats.clients.total if stats else '0' }}</div>
+                <div class="stat-label">
+                    {% if stats and stats.clients.nouveaux_ce_mois > 0 %}
+                        +{{ stats.clients.nouveaux_ce_mois }} ce mois
+                    {% else %}
+                        Aucun nouveau ce mois
+                    {% endif %}
+                </div>
             </div>
+
+            <!-- Prêts Actifs -->
             <div class="stat-card">
                 <h3>💰 Prêts Actifs</h3>
-                <p>18</p>
+                <div class="stat-number">{{ stats.prets.actifs if stats else '0' }}</div>
+                <div class="stat-label">
+                    {{ "%.2f"|format(stats.prets.montant_actifs) if stats and stats.prets.montant_actifs else '0.00' }} €
+                </div>
             </div>
+
+            <!-- Prêts en Attente -->
             <div class="stat-card">
                 <h3>⏳ En Attente</h3>
-                <p>7</p>
+                <div class="stat-number">{{ stats.prets.en_attente if stats else '0' }}</div>
+                <div class="stat-label">
+                    En attente d'approbation
+                </div>
             </div>
+
+            <!-- Performance -->
             <div class="stat-card">
                 <h3>📈 Performance</h3>
-                <p>98%</p>
+                <div class="stat-number">
+                    {{ "%.1f"|format(stats.performance.taux_approbation) if stats and stats.performance else '0.0' }}%
+                </div>
+                <div class="stat-label">
+                    Taux d'approbation
+                </div>
             </div>
         </div>
 
-        <div style="background: white; padding: 2rem; border-radius: 10px;">
-            <h3>Actions Administrateur</h3>
-            <a href="{{ url_for('prets_en_attente') }}" class="btn">📋 Gérer les prêts</a>
-            <a href="{{ url_for('gerer_employes') }}" class="btn btn-primary">👥 Gérer les employés</a>
-            <a href="#" class="btn">📊 Rapports</a>
-            <a href="{{ url_for('debug_users') }}" class="btn">🐛 Debug</a>
+        <!-- Actions Rapides -->
+        <div style="background: white; padding: 2rem; border-radius: 10px; margin: 2rem 0;">
+            <h3>🚀 Actions Rapides</h3>
+            <a href="{{ url_for('prets_en_attente') }}" class="btn">📋 Gérer les prêts ({{ stats.prets.en_attente if stats else '0' }})</a>
+            <a href="{{ url_for('gerer_employes') }}" class="btn">👥 Gérer les employés</a>
+            <a href="{{ url_for('admin_rapports') }}" class="btn">📊 Rapports détaillés</a>
+            <a href="{{ url_for('admin_remboursements') }}" class="btn">💳 Voir remboursements</a>
         </div>
+
+        <!-- Message si pas de stats -->
+        {% if not stats %}
+        <div style="background: #fff3cd; padding: 1rem; border-radius: 5px; margin: 1rem 0;">
+            <strong>⚠️ Les statistiques ne sont pas disponibles</strong>
+            <p>Vérifiez que la fonction <code>calculer_statistiques_globales()</code> fonctionne correctement.</p>
+        </div>
+        {% endif %}
     </div>
+
+    <!-- Script pour rafraîchir périodiquement -->
+    <script>
+        // Rafraîchir les stats toutes les 30 secondes
+        setTimeout(() => {
+            window.location.reload();
+        }, 30000);
+    </script>
 </body>
 </html>
-
-<a href="{{ url_for('admin_remboursements') }}" class="btn">💳 Voir tous les remboursements</a>
-<a href="{{ url_for('admin_rapports') }}" class="btn">📊 Rapports et Statistiques</a>
-<a href="{{ url_for('admin_notifications') }}" class="btn">🔔 Gérer les notifications</a>

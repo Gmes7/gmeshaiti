@@ -1,69 +1,72 @@
-{% extends "base.html" %}
-
-{% block content %}
-<div class="container">
-    <h2>✏️ Modifier l'employé</h2>
-
-    <div class="card">
-        <div class="card-body">
-            <form method="POST">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Nom d'utilisateur</label>
-                            <input type="text" class="form-control" id="username" name="username"
-                                   value="{{ employe.username }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email"
-                                   value="{{ employe.email }}" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="prenom" class="form-label">Prénom</label>
-                            <input type="text" class="form-control" id="prenom" name="prenom"
-                                   value="{{ employe.prenom }}" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="nom" class="form-label">Nom</label>
-                            <input type="text" class="form-control" id="nom" name="nom"
-                                   value="{{ employe.nom }}" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="telephone" class="form-label">Téléphone</label>
-                            <input type="tel" class="form-control" id="telephone" name="telephone"
-                                   value="{{ employe.telephone }}">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Nouveau mot de passe</label>
-                            <input type="password" class="form-control" id="password" name="password"
-                                   placeholder="Laisser vide pour ne pas changer">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Modifier</button>
-                    <a href="{{ url_for('gerer_employes') }}" class="btn btn-secondary">Annuler</a>
-                </div>
-            </form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Modifier Employé - GMES</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; }
+        input, select { padding: 8px; width: 300px; }
+        .btn { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; margin: 5px; }
+        .btn-success { background: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>✏️ Modifier l'Employé</h1>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label>Nom d'utilisateur *</label>
+            <input type="text" name="username" value="{{ employe.username }}" required>
         </div>
-    </div>
-</div>
-{% endblock %}
+
+        <div class="form-group">
+            <label>Email *</label>
+            <input type="email" name="email" value="{{ employe.email }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>Nom *</label>
+            <input type="text" name="nom" value="{{ employe.nom }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>Prénom *</label>
+            <input type="text" name="prenom" value="{{ employe.prenom }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>Téléphone</label>
+            <input type="text" name="telephone" value="{{ employe.telephone }}">
+        </div>
+
+        <div class="form-group">
+            <label>Fonction *</label>
+            <select name="fonction" required>
+                {% for key, value in fonctions.items() %}
+                <option value="{{ key }}" {% if employe.fonction == key %}selected{% endif %}>
+                    {{ value }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Statut *</label>
+            <select name="statut" required>
+                <option value="actif" {% if employe.statut == 'actif' %}selected{% endif %}>Actif</option>
+                <option value="suspendu" {% if employe.statut == 'suspendu' %}selected{% endif %}>Suspendu</option>
+                <option value="en_attente" {% if employe.statut == 'en_attente' %}selected{% endif %}>En attente</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+            <input type="password" name="password">
+        </div>
+
+        <button type="submit" class="btn btn-success">💾 Enregistrer les modifications</button>
+        <a href="{{ url_for('gerer_employes') }}" class="btn">❌ Annuler</a>
+    </form>
+</body>
+</html>

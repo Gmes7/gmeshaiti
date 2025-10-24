@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
-from models import Employee, User, Loan, Transaction
+from models import Employe, User, Loan, Transaction
 from database import db
 
 employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
@@ -9,7 +9,7 @@ employees_bp = Blueprint('employees', __name__, url_prefix='/employees')
 @employees_bp.route('/dashboard')
 @login_required
 def dashboard():
-    if not isinstance(current_user, Employee):
+    if not isinstance(current_user, Employe):
         return redirect(url_for('auth.login'))
 
     # Statistiques pour le tableau de bord employé
@@ -17,7 +17,7 @@ def dashboard():
     pending_loans = Loan.query.filter_by(status='pending').count()
     pending_transactions = Transaction.query.filter_by(status='pending').count()
 
-    return render_template('employee_dashboard.html',
+    return render_template('employe_dashboard.html',
                            total_clients=total_clients,
                            pending_loans=pending_loans,
                            pending_transactions=pending_transactions)

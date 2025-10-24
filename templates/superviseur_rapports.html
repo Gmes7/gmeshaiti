@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapports Performance - Superviseur GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #6f42c1; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        .btn-back { background: #6c757d; }
+        .performance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+        .performance-card { background: #f8f9fa; padding: 1.5rem; border-radius: 10px; border-left: 4px solid; }
+        .caissier { border-left-color: #28a745; }
+        .conseiller { border-left-color: #17a2b8; }
+        .analyste { border-left-color: #ffc107; }
+        .gestionnaire { border-left-color: #dc3545; }
+        .rapports { border-left-color: #6f42c1; }
+        .progress-bar { background: #e9ecef; border-radius: 10px; height: 10px; margin: 0.5rem 0; }
+        .progress { height: 100%; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Rapports Performance - Superviseur</h1>
+        <a href="{{ url_for('superviseur_dashboard') }}" class="btn btn-back" style="color: white;">← Retour Dashboard</a>
+    </div>
+
+    <div class="container">
+        <!-- Résumé Global -->
+        <div class="card">
+            <h2>📈 Performance Globale de l'Équipe</h2>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1rem;">
+                <div style="text-align: center; padding: 1rem; background: #e7f3ff; border-radius: 5px;">
+                    <strong>Performance Moyenne</strong><br>
+                    <span style="font-size: 1.5rem; color: #28a745;">87%</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #e7f3ff; border-radius: 5px;">
+                    <strong>Employés Actifs</strong><br>
+                    <span style="font-size: 1.5rem;">{{ performances.values()|sum(attribute='employes_actifs') }}</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #e7f3ff; border-radius: 5px;">
+                    <strong>Taux d'Activité</strong><br>
+                    <span style="font-size: 1.5rem; color: #17a2b8;">92%</span>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #e7f3ff; border-radius: 5px;">
+                    <strong>Satisfaction</strong><br>
+                    <span style="font-size: 1.5rem; color: #6f42c1;">4.2/5</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance par Fonction -->
+        <div class="card">
+            <h2>🎯 Performance par Fonction</h2>
+            <div class="performance-grid">
+                {% for fonction, data in performances.items() %}
+                <div class="performance-card {{ fonction }}">
+                    <h3>
+                        {% if fonction == 'caissier' %}🏦 Caissiers
+                        {% elif fonction == 'conseiller' %}👥 Conseillers
+                        {% elif fonction == 'analyste_credit' %}📊 Analystes
+                        {% elif fonction == 'gestionnaire_groupe' %}🎯 Gestionnaires
+                        {% elif fonction == 'rapports' %}📈 Rapports
+                        {% else %}{{ fonction }}{% endif %}
+                    </h3>
+
+                    <p><strong>Nombre:</strong> {{ data.nombre }} employé(s)</p>
+                    <p><strong>Actifs:</strong> {{ data.employes_actifs }}</p>
+
+                    <div style="margin: 1rem 0;">
+                        <strong>Performance: {{ data.performance_moyenne }}%</strong>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: {{ data.performance_moyenne }}%; background:
+                                {% if data.performance_moyenne >= 80 %}#28a745
+                                {% elif data.performance_moyenne >= 60 %}#ffc107
+                                {% else %}#dc3545{% endif %};">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin: 1rem 0;">
+                        <strong>Activité: {{ data.taux_activite }}%</strong>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: {{ data.taux_activite }}%; background: #17a2b8;"></div>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('superviseur_voir_fonction', fonction=fonction) }}" class="btn btn-sm">
+                        👥 Voir Détails
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <h3>📤 Exporter Rapports</h3>
+            <a href="#" class="btn" style="background: #28a745;">📊 Excel - Performance</a>
+            <a href="#" class="btn" style="background: #17a2b8;">📈 PDF - Statistiques</a>
+            <a href="#" class="btn" style="background: #6f42c1;">👥 Rapport Équipe</a>
+        </div>
+    </div>
+</body>
+</html>

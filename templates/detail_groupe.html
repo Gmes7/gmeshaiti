@@ -69,7 +69,7 @@
                 <li class="loan-item">
                     <strong>Prêt #{{ pret.id }}</strong> - {{ pret.montant }} HTG<br>
                     <small>
-                        Client: {{ Client.query.get(pret.client_id).prenom }}
+                        Client: {{ User.query.get(pret.client_id).prenom }}
                         | Statut:
                         <span style="color:
                             {% if pret.statut == 'approuve' %}#28a745

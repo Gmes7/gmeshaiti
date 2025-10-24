@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>🎯 Défis & Objectifs</h2>
+
+    {% for defi in defis %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>{{ defi.nom }}</h5>
+            <p>{{ defi.description }}</p>
+            <div class="d-flex justify-content-between">
+                <span class="badge bg-success">🎁 {{ defi.recompense }} points</span>
+                {% if defi.termine %}
+                <span class="badge bg-primary">✅ Terminé</span>
+                {% else %}
+                <span class="badge bg-secondary">🔄 En cours</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire - GMES</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #fd7e14; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin: 2rem 0; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 0.5rem; }
+        .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .group-card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .progress-bar { background: #e9ecef; border-radius: 10px; height: 10px; margin: 0.5rem 0; }
+        .progress { background: #28a745; height: 100%; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Gestionnaire de Groupes GMES</h1>
+        <p>Connecté en tant que: {{ current_user.prenom }} {{ current_user.nom }}</p>
+        <a href="{{ url_for('deconnexion') }}" style="color: white;">Déconnexion</a>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <h3>👥 Groupes Actifs</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ total_groupes }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>👤 Membres Total</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ total_membres }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>📈 Performance</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ performance_moyenne }}%</p>
+            </div>
+            <div class="stat-card">
+                <h3>🆕 Nouveaux</h3>
+                <p style="font-size: 2rem; font-weight: bold;">{{ nouveaux_membres }}</p>
+                <p>Ce mois</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
+            <!-- Gestion -->
+            <div style="background: white; padding: 2rem; border-radius: 10px;">
+                <h3>🎯 Gestion des Groupes</h3>
+                <a href="{{ url_for('creer_groupe') }}" class="btn">➕ Nouveau Groupe</a>
+                <a href="{{ url_for('affecter_membres') }}" class="btn">👥 Affecter Membres</a>
+                <a href="{{ url_for('planifier_reunions') }}" class="btn">📅 Planifier Réunions</a>
+                <a href="{{ url_for('rapports_groupes') }}" class="btn">📊 Rapports Groupes</a>
+            </div>
+
+            <!-- Alertes Groupes -->
+            <div style="background: white; padding: 2rem; border-radius: 10px;">
+                <h3>🔔 Alertes Groupes</h3>
+                {% if groupes_faible_performance %}
+                    <p><strong>⚠️ {{ groupes_faible_performance }} groupe(s) faible performance</strong></p>
+                {% endif %}
+                {% if reunions_aujourdhui %}
+                    <p><strong>📅 {{ reunions_aujourdhui }} réunion(s) aujourd'hui</strong></p>
+                {% endif %}
+                <p><strong>🎯 {{ objectifs_atteints }}/{{ total_groupes }} objectif(s) atteint(s)</strong></p>
+            </div>
+        </div>
+
+        <!-- Groupes Actifs -->
+        <div style="background: white; padding: 2rem; border-radius: 10px;">
+            <h3>👥 Mes Groupes</h3>
+            <div class="group-grid">
+                {% for groupe in groupes %}
+                <div class="group-card">
+                    <h4>{{ groupe.nom }}</h4>
+                    <p>Code: {{ groupe.code_groupe }}</p>
+                    <p>Zone: {{ groupe.zone }}</p>
+                    <p>Membres: {{ groupe.nb_membres|default(0) }}</p>
+
+                    <div class="progress-bar">
+                        <div class="progress" style="width: {{ groupe.taux_remboursement|default(0) }}%;"></div>
+                    </div>
+                    <p>Taux remboursement: {{ groupe.taux_remboursement|default(0) }}%</p>
+
+                    <a href="{{ url_for('detail_groupe', groupe_id=groupe.id) }}" class="btn">Voir Groupe</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

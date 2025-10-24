@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tous les Employés - Superviseur</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .header { background: #6f42c1; color: white; padding: 1rem 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        .btn-back { background: #6c757d; }
+        .employee-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .employee-card { background: #f8f9fa; padding: 1.5rem; border-radius: 10px; border-left: 4px solid #6f42c1; }
+        .badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; }
+        .badge-success { background: #28a745; color: white; }
+        .badge-warning { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 Tous les Employés - Superviseur</h1>
+        <a href="{{ url_for('superviseur_dashboard') }}" class="btn btn-back" style="color: white;">← Retour Dashboard</a>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Équipe Complète ({{ employes|length }} employé(s))</h2>
+
+            {% if employes %}
+            <div class="employee-grid">
+                {% for emp in employes %}
+                <div class="employee-card">
+                    <h3>{{ emp.prenom }} {{ emp.nom }}</h3>
+                    <p><strong>Fonction:</strong>
+                        {% if emp.fonction == 'caissier' %}🏦 Caissier
+                        {% elif emp.fonction == 'conseiller' %}👥 Conseiller
+                        {% elif emp.fonction == 'analyste_credit' %}📊 Analyste
+                        {% elif emp.fonction == 'gestionnaire_groupe' %}🎯 Gestionnaire
+                        {% elif emp.fonction == 'rapports' %}📈 Rapports
+                        {% else %}{{ emp.fonction }}{% endif %}
+                    </p>
+                    <p><strong>Email:</strong> {{ emp.email }}</p>
+                    <p><strong>Téléphone:</strong> {{ emp.telephone or 'Non renseigné' }}</p>
+                    <p><strong>Statut:</strong>
+                        <span class="badge {% if emp.statut == 'actif' %}badge-success{% else %}badge-warning{% endif %}">
+                            {{ emp.statut }}
+                        </span>
+                    </p>
+                    <p><strong>Embauche:</strong> {{ emp.date_creation.strftime('%d/%m/%Y') }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; padding: 2rem; color: #6c757d;">
+                Aucun employé trouvé.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

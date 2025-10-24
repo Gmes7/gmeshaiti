@@ -25,4 +25,4 @@ class Config:
     DEFAULT_INTEREST_RATE = 12.0  # 12% annuel
 
     # Configuration du portail employé
-    EMPLOYEE_ROLES = ['manager', 'agent', 'cashier', 'advisor']
+    EMPLOYE_ROLES = ['manager', 'agent', 'cashier', 'advisor']

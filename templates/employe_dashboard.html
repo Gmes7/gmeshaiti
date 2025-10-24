@@ -47,3 +47,27 @@
     </div>
 </body>
 </html>
+
+<div class="dashboard-grid">
+    {% if current_user|has_permission('caissier') %}
+    <div class="card">
+        <h3>💳 Gestion des Remboursements</h3>
+        <a href="{{ url_for('employe_remboursements') }}" class="btn">Accéder</a>
+    </div>
+    {% endif %}
+
+    {% if current_user|has_permission('analyste_credit') %}
+    <div class="card">
+        <h3>📊 Analyse des Prêts</h3>
+        <a href="{{ url_for('employe_analyse_prets') }}" class="btn">Accéder</a>
+    </div>
+    {% endif %}
+
+    {% if current_user|has_permission('conseiller') %}
+    <div class="card">
+        <h3>👥 Gestion des Clients</h3>
+        <a href="{{ url_for('employe_gestion_clients') }}" class="btn">Accéder</a>
+    </div>
+    {% endif %}
+</div>
+
